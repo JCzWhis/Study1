@@ -1,0 +1,86 @@
+# Sensitive Configuration Files
+# Protect API keys, database credentials, and other secrets
+config.ini
+.env
+*.env
+secrets.yaml
+credentials.json
+
+# Local Databases
+# Prevent committing local database instances
+*.db
+*.sqlite
+*.sqlite3
+*.sqlitedb
+
+# Log Files
+# Exclude application and system logs
+*.log
+logs/
+debug.log
+
+# Large Language Model Files & Cache
+# Avoid committing large model files or local cache
+*.bin
+*.safetensors
+*.pt
+*.onnx
+ollama_cache/
+huggingface_cache/
+
+# User Data & Medical Documents
+# Protect sensitive patient or user-specific data and uploaded documents
+user_data/
+medical_records/
+uploaded_documents/
+patient_files/
+*.pdf
+*.docx
+*.txt
+# Add specific file types if documents are stored outside dedicated directories
+
+# Python specific
+# Exclude Python cache files, virtual environments, and build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.nox/
+.eggs/
+*.egg-info/
+dist/
+build/
+wheels/
+*.whl
+MANIFEST.in
+
+# IDE and Editor specific files
+# Exclude settings and workspace files from common IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.DS_Store
+.ipynb_checkpoints
+
+# Operating System files
+# Exclude OS-specific files like Thumbs.db on Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Test artifacts
+# Exclude coverage reports and other test-generated files
+.coverage
+htmlcov/
+pytest_cache/
+.pytest_cache/
+nosetests.xml
+coverage.xml
