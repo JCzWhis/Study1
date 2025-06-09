@@ -86,6 +86,7 @@ class AppConfig:
         
         # Setup logging
         self._setup_logging()
+        self.logger = logging.getLogger('MedStudy.Config') # Ensure this is after _setup_logging
     
     def _create_directories(self):
         """Create necessary application directories"""
@@ -170,38 +171,55 @@ auto_save_interval = 30
         
         log_file = self.logs_dir / "medstudy.log"
         
-        # Configure logging
-        logging.basicConfig(
-            level=level,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=[
-                logging.FileHandler(log_file, encoding='utf-8'),
-                logging.StreamHandler(sys.stdout)
-            ]
-        )
+        # Get the MedStudy logger
+        logger = logging.getLogger('MedStudy')
+        logger.setLevel(level)
         
-        # Create logger for this module
-        self.logger = logging.getLogger('MedStudy.Config')
-        self.logger.info("Logging system initialized")
-    
+        # Create formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+        # Create file handler
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+        # Create stream handler
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
+
+        # Create logger for this module (child of MedStudy)
+        # self.logger is assigned in __init__ after this call now
+        # self.logger = logging.getLogger('MedStudy.Config')
+        logging.getLogger('MedStudy.Config').info("Logging system initialized")
+
     def get(self, section: str, key: str, fallback: Any = None) -> Any:
-        """Get configuration value with fallback"""
+        """Get configuration value with type conversion and fallback."""
         try:
-            value = self.config.get(section, key)
-            
-            # Try to convert boolean strings
-            if value.lower() in ('true', 'false'):
-                return value.lower() == 'true'
-            
-            # Try to convert numbers
-            try:
-                if '.' in value:
-                    return float(value)
-                return int(value)
-            except ValueError:
-                return value
-                
+            # Use type of fallback to determine which getter to use
+            if isinstance(fallback, bool):
+                # self.config.getboolean can raise ValueError if value is not a valid boolean string
+                return self.config.getboolean(section, key)
+            elif isinstance(fallback, int): # Important: check for int before float
+                # self.config.getint can raise ValueError
+                return self.config.getint(section, key)
+            elif isinstance(fallback, float):
+                # self.config.getfloat can raise ValueError
+                return self.config.getfloat(section, key)
+            else:
+                # Fallback is None, str, or other type. Use generic get().
+                # The fallback in self.config.get is for missing keys.
+                return self.config.get(section, key)
+
         except (configparser.NoSectionError, configparser.NoOptionError):
+            # Section or key not found
+            return fallback
+        except ValueError:
+            # Value found but cannot be converted to the type implied by fallback (bool, int, float)
+            self.logger.warning(
+                f"Configuration value [{section}].{key} has incorrect format for the expected type. "
+                f"Returning fallback value: {fallback}"
+            )
             return fallback
     
     def set(self, section: str, key: str, value: Any):

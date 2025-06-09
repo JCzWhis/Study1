@@ -255,8 +255,8 @@ For more information, visit: https://github.com/your-repo/Study1
         
         # Set debug mode if requested
         if args.debug:
-            logging.getLogger().setLevel(logging.DEBUG)
-            launcher.logger.debug("Debug mode enabled")
+            # Logging level is now handled by AppConfig
+            launcher.logger.debug("Debug mode enabled by CLI arg --debug")
         
         # Handle different modes
         if args.diagnostic:

@@ -35,193 +35,210 @@ class DatabaseManager:
                 self._create_basic_tables(conn)
                 
                 self.logger.info("Database initialized successfully")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize database: {e}")
+        except sqlite3.Error as e:
+            self.logger.error(f"Failed to initialize database {self.db_path}: {e}")
+            raise
+        except Exception as e_gen: # Catch any other unexpected error during init
+            self.logger.error(f"Unexpected error during database initialization for {self.db_path}: {e_gen}")
             raise
     
     def _create_basic_tables(self, conn: sqlite3.Connection):
         """Create basic tables for immediate use + RAG and MedCards tables"""
         
         # Application metadata table
+        # Application metadata table: Stores key-value pairs for application settings & info.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS app_metadata (
-                key TEXT PRIMARY KEY,
-                value TEXT NOT NULL,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                key         TEXT PRIMARY KEY,
+                value       TEXT NOT NULL,
+                updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Auto-updates on record change (SQLite specific behavior for TIMESTAMP)
             )
         """)
         
-        # User preferences table
+        # User preferences table: Stores user-specific settings.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_preferences (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                category TEXT NOT NULL,
-                key TEXT NOT NULL,
-                value TEXT NOT NULL,
-                data_type TEXT DEFAULT 'string',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                category    TEXT NOT NULL,
+                key         TEXT NOT NULL,
+                value       TEXT NOT NULL,
+                data_type   TEXT DEFAULT 'string', -- Expected data type: 'string', 'int', 'float', 'bool', 'json'
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Auto-updates on record change
                 UNIQUE(category, key)
             )
         """)
         
-        # Session logs for debugging
+        # Session logs for debugging & analytics.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS session_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                session_type TEXT NOT NULL,
-                data TEXT,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_type    TEXT NOT NULL, -- E.g., 'study', 'quiz', 'app_lifecycle'
+                data            TEXT,          -- JSON string with session-specific data
+                timestamp       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
-        # Documents table for RAG system
+        # Documents table for RAG system: Stores metadata about imported documents.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS documents (
-                document_id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                file_path TEXT NOT NULL,
-                pages INTEGER DEFAULT 0,
-                file_size INTEGER DEFAULT 0,
-                images_count INTEGER DEFAULT 0,
-                processed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                document_id     TEXT PRIMARY KEY, -- E.g., UUID or hash of the document
+                title           TEXT NOT NULL,
+                file_path       TEXT NOT NULL UNIQUE, -- Ensure unique file paths
+                pages           INTEGER DEFAULT 0,
+                file_size       INTEGER DEFAULT 0,    -- In bytes
+                images_count    INTEGER DEFAULT 0,
+                processed_at    TIMESTAMP,            -- Timestamp of when processing (e.g., embedding) was completed
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
-        # Document images table
+        # Document images table: Stores extracted images from documents.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS document_images (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                document_id TEXT NOT NULL,
-                filename TEXT NOT NULL,
-                page_number INTEGER NOT NULL,
-                file_path TEXT NOT NULL,
-                file_size INTEGER DEFAULT 0,
-                ocr_text TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (document_id) REFERENCES documents (document_id)
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id     TEXT NOT NULL,
+                filename        TEXT NOT NULL,        -- Original filename or generated name
+                page_number     INTEGER NOT NULL,
+                file_path       TEXT NOT NULL UNIQUE, -- Path to the extracted image file
+                file_size       INTEGER DEFAULT 0,    -- In bytes
+                ocr_text        TEXT,                 -- OCR-extracted text from the image
+                created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (document_id) REFERENCES documents (document_id) ON DELETE CASCADE
             )
         """)
         
-        # Study plans table (retrospective planning)
+        # Study plans table: Defines user-created study plans.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS study_plans (
-                plan_id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                specialty TEXT DEFAULT 'general',
-                topics TEXT NOT NULL,
-                confidence_levels TEXT NOT NULL,
-                last_studied TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                plan_id             TEXT PRIMARY KEY, -- E.g., UUID
+                title               TEXT NOT NULL,
+                specialty           TEXT DEFAULT 'general',
+                topics              TEXT NOT NULL, -- JSON list of topics or keywords
+                confidence_levels   TEXT NOT NULL, -- JSON map of topic to confidence level
+                last_studied        TEXT,          -- ISO8601 timestamp of the last study session for this plan
+                created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Auto-updates on record change
             )
         """)
         
-        # Study sessions table
+        # Study sessions table: Logs individual study sessions.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS study_sessions (
-                session_id TEXT PRIMARY KEY,
-                plan_id TEXT,
-                topic TEXT NOT NULL,
-                content_generated TEXT,
-                duration_minutes INTEGER DEFAULT 45,
-                active_recall_responses TEXT,
-                quiz_results TEXT,
-                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completed_at TIMESTAMP,
-                FOREIGN KEY (plan_id) REFERENCES study_plans (plan_id)
+                session_id                  TEXT PRIMARY KEY, -- E.g., UUID
+                plan_id                     TEXT,             -- Optional link to a study plan
+                topic                       TEXT NOT NULL,
+                content_generated           TEXT,             -- JSON data of content shown to user
+                duration_minutes            INTEGER DEFAULT 45,
+                active_recall_responses     TEXT,             -- JSON list of active recall questions and answers
+                quiz_results                TEXT,             -- JSON data of quiz performance
+                started_at                  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at                TIMESTAMP,        -- ISO8601 timestamp when session was completed
+                FOREIGN KEY (plan_id) REFERENCES study_plans (plan_id) ON DELETE SET NULL
             )
         """)
         
-        # MedCards tables
+        # MedCards table: Stores flashcards (SRS items).
         conn.execute("""
             CREATE TABLE IF NOT EXISTS medcards (
-                card_id TEXT PRIMARY KEY,
-                card_type TEXT NOT NULL,
-                question TEXT NOT NULL,
-                answer TEXT NOT NULL,
-                specialty TEXT DEFAULT 'general',
-                tags TEXT DEFAULT '[]',
-                image_path TEXT,
-                interval REAL DEFAULT 1.0,
-                ease_factor REAL DEFAULT 2.5,
-                repetitions INTEGER DEFAULT 0,
-                lapses INTEGER DEFAULT 0,
-                due_date TEXT NOT NULL,
-                last_reviewed TEXT,
-                total_reviews INTEGER DEFAULT 0,
-                correct_reviews INTEGER DEFAULT 0,
-                average_time REAL DEFAULT 0.0,
-                created_at TEXT NOT NULL,
-                modified_at TEXT NOT NULL
+                card_id             TEXT PRIMARY KEY, -- E.g., UUID
+                card_type           TEXT NOT NULL CHECK(card_type IN ('qa', 'cloze', 'image_occlusion', 'comprehension', 'custom')), -- Type of card
+                question            TEXT NOT NULL,
+                answer              TEXT NOT NULL,
+                specialty           TEXT DEFAULT 'general',
+                tags                TEXT DEFAULT '[]',    -- JSON list of string tags
+                image_path          TEXT,                 -- Path to an associated image, if any
+                -- SRS Algorithm Fields
+                interval            REAL DEFAULT 1.0,     -- Current interval in days
+                ease_factor         REAL DEFAULT 2.5,     -- Factor affecting interval changes
+                repetitions         INTEGER DEFAULT 0,    -- Number of times successfully recalled
+                lapses              INTEGER DEFAULT 0,    -- Number of times forgotten after first success
+                -- Scheduling Fields
+                due_date            TEXT NOT NULL,        -- ISO8601 date (YYYY-MM-DD) when card is next due
+                last_reviewed       TEXT,                 -- ISO8601 timestamp of last review
+                -- Statistics
+                total_reviews       INTEGER DEFAULT 0,
+                correct_reviews     INTEGER DEFAULT 0,
+                average_time        REAL DEFAULT 0.0,     -- Average time spent on this card in seconds
+                -- Timestamps
+                created_at          TEXT NOT NULL,        -- ISO8601 timestamp
+                modified_at         TEXT NOT NULL         -- ISO8601 timestamp
             )
         """)
         
-        # MedCard reviews history
+        # MedCard reviews history: Logs each review interaction with a flashcard.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS medcard_reviews (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                card_id TEXT NOT NULL,
-                difficulty TEXT NOT NULL,
-                time_taken_seconds INTEGER NOT NULL,
-                correct BOOLEAN NOT NULL,
-                reviewed_at TEXT NOT NULL,
-                FOREIGN KEY (card_id) REFERENCES medcards (card_id)
+                id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+                card_id                 TEXT NOT NULL,
+                difficulty              TEXT NOT NULL CHECK(difficulty IN ('again', 'hard', 'good', 'easy')), -- User's perceived difficulty
+                time_taken_seconds      INTEGER NOT NULL,
+                correct                 INTEGER NOT NULL, -- Boolean: 0 for incorrect, 1 for correct
+                reviewed_at             TEXT NOT NULL,    -- ISO8601 timestamp of the review
+                FOREIGN KEY (card_id) REFERENCES medcards (card_id) ON DELETE CASCADE
             )
         """)
         
-        # MedCard study sessions
+        # MedCard study sessions: Logs specific study sessions for flashcards.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS medcard_sessions (
-                session_id TEXT PRIMARY KEY,
-                cards_reviewed INTEGER DEFAULT 0,
-                cards_correct INTEGER DEFAULT 0,
-                total_time_seconds INTEGER DEFAULT 0,
-                session_type TEXT DEFAULT 'review',
-                started_at TEXT NOT NULL,
-                completed_at TEXT
+                session_id          TEXT PRIMARY KEY, -- E.g., UUID
+                cards_reviewed      INTEGER DEFAULT 0,
+                cards_correct       INTEGER DEFAULT 0,
+                total_time_seconds  INTEGER DEFAULT 0,
+                session_type        TEXT DEFAULT 'review' CHECK(session_type IN ('new', 'review', 'learn', 'custom')), -- Type of session
+                started_at          TEXT NOT NULL,    -- ISO8601 timestamp
+                completed_at        TEXT              -- ISO8601 timestamp
             )
         """)
         
-        # Exam results table
+        # Exam results table: Stores results from practice exams.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS exam_results (
-                exam_id TEXT PRIMARY KEY,
-                plan_id TEXT,
-                exam_type TEXT DEFAULT 'adaptive',
-                questions_total INTEGER DEFAULT 45,
-                questions_correct INTEGER DEFAULT 0,
-                time_taken_seconds INTEGER DEFAULT 0,
-                score_percentage REAL DEFAULT 0.0,
-                detailed_results TEXT,
-                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completed_at TIMESTAMP,
-                FOREIGN KEY (plan_id) REFERENCES study_plans (plan_id)
+                exam_id             TEXT PRIMARY KEY, -- E.g., UUID
+                plan_id             TEXT,             -- Optional link to a study plan
+                exam_type           TEXT DEFAULT 'adaptive' CHECK(exam_type IN ('adaptive', 'standard', 'topic_focused', 'custom')),
+                questions_total     INTEGER DEFAULT 45,
+                questions_correct   INTEGER DEFAULT 0,
+                time_taken_seconds  INTEGER DEFAULT 0,
+                score_percentage    REAL DEFAULT 0.0,
+                detailed_results    TEXT,             -- JSON string containing detailed question-by-question results
+                started_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at        TIMESTAMP,        -- ISO8601 timestamp
+                FOREIGN KEY (plan_id) REFERENCES study_plans (plan_id) ON DELETE SET NULL
             )
         """)
         
-        # User progress analytics
+        # User progress analytics: Stores aggregated progress metrics over time.
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_progress (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                date TEXT NOT NULL,
-                metric_name TEXT NOT NULL,
-                metric_value REAL NOT NULL,
-                specialty TEXT DEFAULT 'general',
-                additional_data TEXT,
-                recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                date                TEXT NOT NULL,        -- Date of the metric (YYYY-MM-DD)
+                metric_name         TEXT NOT NULL,        -- E.g., 'cards_reviewed', 'active_study_hours', 'topic_mastery'
+                metric_value        REAL NOT NULL,
+                specialty           TEXT DEFAULT 'general', -- Medical specialty context, if any
+                additional_data     TEXT,                 -- JSON for extra unstructured data
+                recorded_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(date, metric_name, specialty)
             )
         """)
         
         # Create indexes for better performance
+        # Existing indexes
         conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_processed_at ON documents (processed_at)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_medcards_due_date ON medcards (due_date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_medcards_specialty ON medcards (specialty)")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_study_sessions_started_at ON study_sessions (started_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_study_sessions_started_at ON study_sessions (started_at)") # Often queried by time
         conn.execute("CREATE INDEX IF NOT EXISTS idx_user_progress_date ON user_progress (date)")
         
+        # New indexes for Foreign Keys and frequently queried columns
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_document_images_document_id ON document_images (document_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_study_sessions_plan_id ON study_sessions (plan_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_medcard_reviews_card_id ON medcard_reviews (card_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_plan_id ON exam_results (plan_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_medcards_last_reviewed ON medcards (last_reviewed)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_medcard_reviews_reviewed_at ON medcard_reviews (reviewed_at)")
+
         # Insert initial metadata
         conn.execute("""
             INSERT OR IGNORE INTO app_metadata (key, value) 
@@ -261,10 +278,15 @@ class DatabaseManager:
             
             yield conn
             
-        except Exception as e:
+        except sqlite3.Error as e:
             if conn:
                 conn.rollback()
-            self.logger.error(f"Database error: {e}")
+            self.logger.error(f"Database connection error for {self.db_path}: {e}")
+            raise
+        except Exception as e_gen: # Catch any other unexpected error during connection
+            if conn:
+                conn.rollback()
+            self.logger.error(f"Unexpected error establishing database connection for {self.db_path}: {e_gen}")
             raise
         finally:
             if conn:
@@ -308,9 +330,14 @@ class DatabaseManager:
                 return json.loads(value)
             else:
                 return value
-                
-        except Exception as e:
-            self.logger.error(f"Error getting preference {category}.{key}: {e}")
+        except sqlite3.Error as e_db:
+            self.logger.error(f"Database error in get_preference(category='{category}', key='{key}'): {e_db}")
+            return default
+        except (ValueError, json.JSONDecodeError) as e_conv:
+            self.logger.error(f"Conversion error in get_preference(category='{category}', key='{key}', value_str='{value}', data_type='{data_type}'): {e_conv}")
+            return default
+        except Exception as e_gen: # Catch any other unexpected error
+            self.logger.error(f"Unexpected error in get_preference(category='{category}', key='{key}'): {e_gen}")
             return default
     
     def set_preference(self, category: str, key: str, value: Any) -> bool:
@@ -341,9 +368,12 @@ class DatabaseManager:
             """, (category, key, value_str, data_type))
             
             return True
-            
-        except Exception as e:
-            self.logger.error(f"Error setting preference {category}.{key}: {e}")
+        except (sqlite3.Error, TypeError, ValueError) as e_db_json: # TypeError for json.dumps, ValueError for other issues
+            # Note: Including 'value' in log might be verbose/sensitive for some data.
+            self.logger.error(f"Error in set_preference(category='{category}', key='{key}', value_type='{type(value).__name__}'): {e_db_json}")
+            return False
+        except Exception as e_gen:
+            self.logger.error(f"Unexpected error in set_preference(category='{category}', key='{key}', value_type='{type(value).__name__}'): {e_gen}")
             return False
     
     def log_session(self, session_type: str, data: Optional[Dict[str, Any]] = None):
@@ -354,8 +384,10 @@ class DatabaseManager:
                 "INSERT INTO session_logs (session_type, data) VALUES (?, ?)",
                 (session_type, data_json)
             )
-        except Exception as e:
-            self.logger.error(f"Error logging session: {e}")
+        except (sqlite3.Error, TypeError) as e_db_json: # TypeError for json.dumps
+            self.logger.error(f"Error in log_session(session_type='{session_type}'): {e_db_json}")
+        except Exception as e_gen:
+            self.logger.error(f"Unexpected error in log_session(session_type='{session_type}'): {e_gen}")
     
     def get_database_info(self) -> Dict[str, Any]:
         """Get database information and statistics"""
@@ -382,10 +414,12 @@ class DatabaseManager:
                     'path': str(self.db_path),
                     'exists': self.db_path.exists()
                 }
-                
-        except Exception as e:
-            self.logger.error(f"Error getting database info: {e}")
-            return {'error': str(e)}
+        except sqlite3.Error as e_db:
+            self.logger.error(f"Error getting database info for {self.db_path}: {e_db}")
+            return {'error': str(e_db)}
+        except Exception as e_gen:
+            self.logger.error(f"Unexpected error getting database info for {self.db_path}: {e_gen}")
+            return {'error': str(e_gen)}
     
     def backup_database(self, backup_path: Optional[str] = None) -> bool:
         """Create database backup"""
@@ -403,9 +437,17 @@ class DatabaseManager:
             
             self.logger.info(f"Database backed up to {backup_path}")
             return True
-            
-        except Exception as e:
-            self.logger.error(f"Error backing up database: {e}")
+        except sqlite3.Error as e_db:
+            actual_backup_path = backup_path or f"{self.db_path.stem}_backup_*.db"
+            self.logger.error(f"Database error during backup of {self.db_path} to {actual_backup_path}: {e_db}")
+            return False
+        except IOError as e_io:
+            actual_backup_path = backup_path or f"{self.db_path.stem}_backup_*.db"
+            self.logger.error(f"IO error during backup of {self.db_path} to {actual_backup_path}: {e_io}")
+            return False
+        except Exception as e_gen:
+            actual_backup_path = backup_path or f"{self.db_path.stem}_backup_*.db"
+            self.logger.error(f"Unexpected error during backup of {self.db_path} to {actual_backup_path}: {e_gen}")
             return False
     
     def vacuum_database(self) -> bool:
@@ -416,9 +458,11 @@ class DatabaseManager:
             
             self.logger.info("Database vacuumed successfully")
             return True
-            
-        except Exception as e:
-            self.logger.error(f"Error vacuuming database: {e}")
+        except sqlite3.Error as e_db:
+            self.logger.error(f"Error vacuuming database {self.db_path}: {e_db}")
+            return False
+        except Exception as e_gen:
+            self.logger.error(f"Unexpected error vacuuming database {self.db_path}: {e_gen}")
             return False
 
 
@@ -436,16 +480,26 @@ class DatabaseUtils:
         """Convert row to dictionary"""
         return {col[0]: row[idx] for idx, col in enumerate(cursor.description)}
     
+
+    _db_utils_logger = logging.getLogger('MedStudy.DatabaseUtils')
+
     @staticmethod
-    def validate_table_name(table_name: str) -> bool:
-        """Validate table name for security"""
+    def _validate_identifier(identifier: str) -> bool:
+        """
+        Validate SQL identifier (table or column name) for security.
+        Allows names starting with a letter, followed by letters, numbers, or underscores.
+        """
+        if not identifier: # Should not be empty
+            return False
         import re
+        # Regex ensures the identifier starts with a letter and contains only alphanumeric chars or underscores.
+        # This helps prevent SQL injection through identifiers like "col; DROP TABLE users" or "1=1 --"
         pattern = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
-        return bool(pattern.match(table_name))
-    
+        return bool(pattern.match(identifier))
+
     @staticmethod
     def build_where_clause(conditions: Dict[str, Any]) -> tuple:
-        """Build WHERE clause from conditions dictionary"""
+        """Build WHERE clause from conditions dictionary, safely."""
         if not conditions:
             return "", ()
         
@@ -453,12 +507,27 @@ class DatabaseUtils:
         params = []
         
         for key, value in conditions.items():
+            if not DatabaseUtils._validate_identifier(key):
+                DatabaseUtils._db_utils_logger.error(
+                    f"Invalid column name '{key}' provided to build_where_clause. "
+                    "Column names must be alphanumeric and start with a letter."
+                )
+                raise ValueError(f"Invalid character or format in column name: {key}")
+
             if isinstance(value, (list, tuple)):
+                if not value: # Handle empty list/tuple for IN clause
+                    # SQL syntax for `IN ()` is invalid. Caller should handle or prevent.
+                    # Alternatively, could translate to a clause that's always false, e.g., `1=0`.
+                    # For now, raising an error as this indicates a likely issue in caller logic.
+                    DatabaseUtils._db_utils_logger.error(
+                        f"Empty list/tuple provided for IN clause with column '{key}' in build_where_clause."
+                    )
+                    raise ValueError(f"Empty list/tuple for IN clause is not allowed for column: {key}")
                 placeholders = ','.join('?' * len(value))
-                clauses.append(f"{key} IN ({placeholders})")
+                clauses.append(f"`{key}` IN ({placeholders})") # Use backticks for safety, though validation helps
                 params.extend(value)
             else:
-                clauses.append(f"{key} = ?")
+                clauses.append(f"`{key}` = ?") # Use backticks for safety
                 params.append(value)
         
         where_clause = " AND ".join(clauses)
