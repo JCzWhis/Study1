@@ -6,6 +6,7 @@ import logging # Added to allow direct use of logging.getLogger() for level sett
 from utils.config import get_config
 from utils.logging import get_logger # This will also call setup_logging()
 from utils.diagnostics import perform_system_diagnostics
+from ui.main_window import MainWindow
 
 # Initialize logger for main module
 # Logging is configured when utils.logging is imported
@@ -28,8 +29,10 @@ def run_tkinter_interface(config, debug_mode):
     # from interfaces.tkinter_app import App
     # app = App(config) # Pass the loaded config
     # app.mainloop()
-    logger.info("Placeholder: Tkinter interface would start here.")
-    logger.info("To run Tkinter, you would typically import your Tkinter app and call app.mainloop()")
+    logger.info("Launching CustomTkinter interface...")
+    app = MainWindow(config=config)
+    app.mainloop()
+    logger.info("CustomTkinter interface closed.")
 
 def auto_detect_interface():
     logger.info("Attempting to auto-detect best available interface...")
