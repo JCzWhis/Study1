@@ -1,126 +1,231 @@
 import sys
 import requests
-import importlib.util # For a cleaner way to check module availability
+import importlib.util
+from pathlib import Path
 
-# Assuming these utils are in the same package or sys.path is set up correctly
-from .config import get_config
-from .logging import get_logger # Use our configured logger
+def get_logger_safe():
+    """Obtiene logger de manera segura"""
+    try:
+        from .logging import get_logger
+        return get_logger(__name__)
+    except ImportError:
+        import logging
+        return logging.getLogger(__name__)
 
-logger = get_logger(__name__) # Get a logger for this module
+def get_config_safe():
+    """Obtiene config de manera segura"""
+    try:
+        from .config import get_config
+        return get_config()
+    except ImportError:
+        return {
+            "Ollama": {
+                "host": "http://localhost:11434",
+                "model": "phi3:mini",
+                "timeout": 60
+            }
+        }
+
+logger = get_logger_safe()
 
 def check_python_version():
-    """Logs the current Python version."""
+    """Verifica la versión de Python."""
     logger.info(f"Python version: {sys.version}")
     version_info = sys.version_info
-    if version_info.major < 3 or (version_info.major == 3 and version_info.minor < 8):
-        logger.warning(f"Python version is {version_info.major}.{version_info.minor}. Recommend Python 3.8+ for broader compatibility.")
-    return True # Simple success
+    
+    is_compatible = version_info >= (3, 8)
+    
+    return {
+        'version': f"{version_info.major}.{version_info.minor}.{version_info.micro}",
+        'is_compatible': is_compatible,
+        'major': version_info.major,
+        'minor': version_info.minor,
+        'micro': version_info.micro
+    }
 
 def check_ollama_status():
-    """Checks connection to Ollama and configured model availability."""
+    """Verifica conexión a Ollama y disponibilidad del modelo."""
     logger.info("--- Checking Ollama Status ---")
-    config = get_config()
+    config = get_config_safe()
     ollama_settings = config.get('Ollama', {})
 
     ollama_host = ollama_settings.get('host', 'http://localhost:11434')
     model_name = ollama_settings.get('model', 'phi3:mini')
     timeout = ollama_settings.get('timeout', 60)
 
+    result = {
+        'host': ollama_host,
+        'model': model_name,
+        'running': False,
+        'model_available': False,
+        'error': None
+    }
+
     logger.info(f"Attempting to connect to Ollama host: {ollama_host}")
+    
     try:
-        response = requests.get(ollama_host, timeout=timeout/2) # Shorter timeout for initial ping
+        response = requests.get(ollama_host, timeout=min(timeout/2, 10))
         if response.status_code == 200:
             logger.info(f"Ollama connection successful. Response: {response.text.strip()}")
+            result['running'] = True
 
+            # Check model availability
             logger.info(f"Checking for model: '{model_name}' using Ollama API...")
-            # More robust check using /api/show
-            # Note: Ollama versions before 0.1.15 might not have /api/show in this exact way
-            # For broader compatibility, one might need to list all models and check,
-            # but /api/show is cleaner if available.
             try:
                 show_api_url = f"{ollama_host}/api/show"
-                api_response = requests.post(show_api_url, json={"name": model_name}, timeout=timeout)
+                api_response = requests.post(
+                    show_api_url, 
+                    json={"name": model_name}, 
+                    timeout=timeout
+                )
 
                 if api_response.status_code == 200:
-                    logger.info(f"Ollama model '{model_name}' is available and details received.")
-                    # You could log model details here: api_response.json()
-                    return True
-                elif api_response.status_code == 404: # Model not found
-                    logger.error(f"Ollama model '{model_name}' NOT FOUND. Please pull it: `ollama pull {model_name}`")
-                    return False
+                    logger.info(f"Ollama model '{model_name}' is available.")
+                    result['model_available'] = True
+                elif api_response.status_code == 404:
+                    logger.error(f"Ollama model '{model_name}' NOT FOUND.")
+                    result['error'] = f"Model {model_name} not found"
                 else:
-                    logger.error(f"Failed to get model details for '{model_name}'. Status: {api_response.status_code}. Response: {api_response.text[:200]}")
-                    return False
+                    logger.error(f"Failed to get model details. Status: {api_response.status_code}")
+                    result['error'] = f"Model check failed: {api_response.status_code}"
+                    
             except requests.exceptions.RequestException as e:
-                logger.error(f"Error when trying to check model '{model_name}' via Ollama API: {e}")
-                logger.warning("This might indicate an issue with the Ollama API version or network.")
-                return False
+                logger.error(f"Error checking model '{model_name}': {e}")
+                result['error'] = f"Model check error: {str(e)}"
         else:
-            logger.error(f"Ollama connection failed. Status: {response.status_code}. Response: {response.text[:200]}")
-            logger.error("Please ensure Ollama service is running and accessible at the configured host.")
-            return False
+            logger.error(f"Ollama connection failed. Status: {response.status_code}")
+            result['error'] = f"HTTP {response.status_code}"
+            
     except requests.exceptions.Timeout:
-        logger.error(f"Ollama connection timed out when trying to reach {ollama_host}.")
-        return False
+        logger.error(f"Ollama connection timed out.")
+        result['error'] = "Connection timeout"
     except requests.exceptions.ConnectionError:
-        logger.error(f"Ollama connection failed. Could not connect to {ollama_host}. Ensure Ollama is running.")
-        return False
-    except Exception as e: # Catch any other requests-related errors
-        logger.error(f"An unexpected error occurred while trying to connect to Ollama: {e}")
-        return False
+        logger.error(f"Ollama connection failed. Could not connect to {ollama_host}")
+        result['error'] = "Connection refused"
+    except Exception as e:
+        logger.error(f"Unexpected error connecting to Ollama: {e}")
+        result['error'] = str(e)
+
+    return result
 
 def check_dependencies():
-    """Checks for core Python dependencies using importlib."""
+    """Verifica dependencias core de Python."""
     logger.info("--- Checking Core Dependencies ---")
-    # Dependencies from requirements.txt / README
+    
     dependencies = [
         "customtkinter",
         "requests",
         "gradio",
         "sentence_transformers",
-        "PyPDF2",
-        "docx" # python-docx is imported as 'docx'
+        "PIL",  # Pillow
+        "fitz",  # PyMuPDF
+        "chromadb"
     ]
-    all_found = True
+    
+    results = {}
+    
     for dep_name in dependencies:
-        spec = importlib.util.find_spec(dep_name)
-        if spec is None:
-            logger.error(f"Dependency '{dep_name}': NOT FOUND. Please install it (e.g., via requirements.txt).")
-            all_found = False
-        else:
-            logger.info(f"Dependency '{dep_name}': Found.")
+        try:
+            spec = importlib.util.find_spec(dep_name)
+            if spec is None:
+                logger.error(f"Dependency '{dep_name}': NOT FOUND")
+                results[dep_name] = {'installed': False, 'error': 'Not found'}
+            else:
+                logger.info(f"Dependency '{dep_name}': Found")
+                results[dep_name] = {'installed': True}
+        except Exception as e:
+            logger.error(f"Error checking '{dep_name}': {e}")
+            results[dep_name] = {'installed': False, 'error': str(e)}
 
+    all_found = all(dep.get('installed', False) for dep in results.values())
+    
     if all_found:
-        logger.info("All core dependencies seem to be installed.")
+        logger.info("All core dependencies are installed.")
     else:
-        logger.warning("Some core dependencies are missing. Please install them to ensure full functionality.")
-    return all_found
+        logger.warning("Some core dependencies are missing.")
+    
+    return {
+        'all_installed': all_found,
+        'dependencies': results
+    }
 
-# Add more checks here as needed, e.g., file permissions, specific tool versions, etc.
+def check_file_structure():
+    """Verifica estructura de archivos del proyecto"""
+    logger.info("--- Checking File Structure ---")
+    
+    project_root = Path.cwd()
+    
+    required_files = [
+        "main.py",
+        "requirements.txt",
+        "config_template.ini"
+    ]
+    
+    required_dirs = [
+        "app",
+        "core", 
+        "utils",
+        "data",
+        "logs"
+    ]
+    
+    results = {
+        'files': {},
+        'directories': {},
+        'all_present': True
+    }
+    
+    # Check files
+    for file_name in required_files:
+        file_path = project_root / file_name
+        exists = file_path.exists()
+        results['files'][file_name] = exists
+        if not exists:
+            results['all_present'] = False
+            logger.warning(f"Required file missing: {file_name}")
+        else:
+            logger.info(f"Found: {file_name}")
+    
+    # Check directories
+    for dir_name in required_dirs:
+        dir_path = project_root / dir_name
+        exists = dir_path.exists() and dir_path.is_dir()
+        results['directories'][dir_name] = exists
+        if not exists:
+            results['all_present'] = False
+            logger.warning(f"Required directory missing: {dir_name}")
+        else:
+            logger.info(f"Found directory: {dir_name}")
+    
+    return results
 
 def perform_system_diagnostics():
-    """Runs all diagnostic checks and logs the results."""
+    """Ejecuta todos los chequeos de diagnóstico."""
     logger.info("======== Starting System Diagnostics ========")
 
     results = {
         "python_version": check_python_version(),
         "ollama_status": check_ollama_status(),
         "dependencies": check_dependencies(),
+        "file_structure": check_file_structure()
     }
 
     logger.info("======== System Diagnostics Complete ========")
 
-    all_ok = all(results.values())
+    # Determine overall health
+    checks = [
+        results["python_version"]["is_compatible"],
+        results["ollama_status"]["running"],
+        results["dependencies"]["all_installed"],
+        results["file_structure"]["all_present"]
+    ]
+    
+    all_ok = all(checks)
+    
     if all_ok:
         logger.info("All diagnostic checks passed successfully!")
     else:
-        logger.warning("Some diagnostic checks failed. Please review the logs above for details.")
+        logger.warning("Some diagnostic checks failed. Please review the logs.")
 
-    return all_ok
-
-if __name__ == '__main__':
-    # This allows running diagnostics directly, e.g., python utils/diagnostics.py
-    # Ensure logging is set up (it should be by importing .logging)
-    print("Running MedStudy Pro System Diagnostics directly...")
-    perform_system_diagnostics()
-    print("\nDiagnostic run finished. Check console output and log file for details.")
+    results["overall_status"] = "healthy" if all_ok else "issues_detected"
+    return results
