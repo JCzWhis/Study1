@@ -1,9 +1,27 @@
+"""
+MedStudy Pro - Logging utilities
+Configuración de logging mejorada y compatible
+"""
+
 import logging
 import os
-from .config import get_config # Assuming config.py is in the same directory
+import sys
+from pathlib import Path
 
 # Global flag to ensure setup_logging is called only once
 _logging_configured = False
+
+def get_config_safe():
+    """Obtiene configuración de manera segura sin dependencias circulares"""
+    try:
+        from .config import get_config
+        return get_config()
+    except ImportError:
+        # Fallback si hay problemas de importación circular
+        return {
+            "Paths": {"log_file": "logs/app.log"},
+            "App": {"debug_mode": False}
+        }
 
 def setup_logging():
     """
@@ -14,12 +32,12 @@ def setup_logging():
     if _logging_configured:
         return
 
-    config = get_config()
+    config = get_config_safe()
     log_settings = config.get("Paths", {})
     app_settings = config.get("App", {})
 
-    log_file_path = log_settings.get("log_file", "logs/app.log") # Default if not in config
-    debug_mode = app_settings.get("debug_mode", False) # Get debug_mode, defaults to False
+    log_file_path = log_settings.get("log_file", "logs/app.log")
+    debug_mode = app_settings.get("debug_mode", False)
 
     log_level = logging.DEBUG if debug_mode else logging.INFO
 
@@ -30,12 +48,10 @@ def setup_logging():
             os.makedirs(log_dir)
             print(f"INFO: Log directory '{log_dir}' created.")
         except OSError as e:
-            # Fallback to console logging if directory creation fails
             print(f"ERROR: Could not create log directory '{log_dir}': {e}. Logging to console only.")
             log_file_path = None
 
     # Basic configuration
-    # Get the root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(log_level)
 
@@ -45,13 +61,12 @@ def setup_logging():
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-    # Remove any existing handlers to avoid duplicate logs if this function is ever called again
-    # (though _logging_configured should prevent it)
+    # Remove any existing handlers to avoid duplicate logs
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
     # Console Handler
-    console_handler = logging.StreamHandler()
+    console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
 
@@ -75,7 +90,7 @@ def get_logger(name):
     Ensures logging is set up before returning the logger.
     """
     if not _logging_configured:
-        setup_logging() # Ensure logging is configured
+        setup_logging()
     return logging.getLogger(name)
 
 # Automatically configure logging when this module is first imported
@@ -83,22 +98,17 @@ if not _logging_configured:
     setup_logging()
 
 if __name__ == '__main__':
-    # For testing purposes
     print("Testing logging setup...")
-
-    # This will trigger setup_logging if not already done by direct import
+    
     logger = get_logger("LoggingTest")
-
+    
     logger.debug("This is a debug message.")
     logger.info("This is an info message.")
     logger.warning("This is a warning message.")
     logger.error("This is an error message.")
     logger.critical("This is a critical message.")
-
-    # Test with another logger name
+    
     another_logger = get_logger("AnotherModule")
     another_logger.info("Message from another logger.")
-
-    print(f"Logging should be visible in console and potentially in the configured log file.")
-    config_for_log_path = get_config().get("Paths", {})
-    print(f"Expected log file: {config_for_log_path.get('log_file', 'logs/app.log')}")
+    
+    print("Logging test completed.")
