@@ -1,9 +1,6 @@
 """
-MedStudy Pro - Medical Study Application
-Desktop application for evidence-based medical learning
-
-This package contains the main application logic, UI components,
-and configuration management for MedStudy Pro.
+MedStudy Pro - Main Application Package
+Desktop application for evidence-based medical learning with local AI
 """
 
 __version__ = "1.0.0-beta"
@@ -17,7 +14,17 @@ APP_VERSION = __version__
 APP_AUTHOR = __author__
 APP_DESCRIPTION = __description__
 
-# Import main configuration
-from .config import config
+# Import main configuration with error handling
+try:
+    from .config import config
+    CONFIG_AVAILABLE = True
+    print("✅ App configuration loaded successfully")
+except ImportError as e:
+    print(f"⚠️ App configuration not available: {e}")
+    config = None
+    CONFIG_AVAILABLE = False
 
-__all__ = ['config', 'APP_NAME', 'APP_VERSION', 'APP_AUTHOR', 'APP_DESCRIPTION']
+__all__ = ['APP_NAME', 'APP_VERSION', 'APP_AUTHOR', 'APP_DESCRIPTION']
+
+if CONFIG_AVAILABLE:
+    __all__.append('config')
