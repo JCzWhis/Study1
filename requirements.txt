@@ -1,0 +1,47 @@
+# MedStudy Pro - Requerimientos de dependencias
+# Versión actualizada y completa
+
+# ===== CORE FRAMEWORK =====
+customtkinter>=5.2.0
+tkinter-tooltip>=2.1.0
+
+# ===== AI & ML =====
+requests>=2.31.0
+sentence-transformers>=2.2.2
+torch>=2.0.0  # Requerido por sentence-transformers
+transformers>=4.30.0
+
+# ===== DATABASE & STORAGE =====
+chromadb>=0.4.15
+sqlite3  # Viene con Python estándar
+
+# ===== DOCUMENT PROCESSING =====
+PyMuPDF>=1.23.0  # Para PDFs (se importa como 'fitz')
+Pillow>=10.0.0   # Para imágenes (se importa como 'PIL')
+python-docx>=0.8.11  # Para documentos Word
+
+# ===== WEB INTERFACE (GRADIO) =====
+gradio>=4.0.0
+
+# ===== SYSTEM MONITORING =====
+psutil>=5.9.0  # Para monitoreo del sistema
+
+# ===== DATA PROCESSING =====
+numpy>=1.24.0
+pandas>=2.0.0  # Para análisis de datos
+
+# ===== UTILITIES =====
+python-dateutil>=2.8.2
+uuid  # Viene con Python estándar
+pathlib  # Viene con Python estándar
+dataclasses  # Viene con Python 3.7+
+
+# ===== DEVELOPMENT & TESTING =====
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# ===== OPTIONAL: ENHANCED FEATURES =====
+# Descomenta si quieres funcionalidades adicionales
+# spacy>=3.6.0  # Para NLP avanzado
+# matplotlib>=3.7.0  # Para gráficos
+# plotly>=5.15.0  # Para visualizaciones interactivas
