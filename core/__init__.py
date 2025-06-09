@@ -1,3 +1,4 @@
+
 """
 MedStudy Pro - Core System Components
 Contains the core functionality including database, utilities,
@@ -5,15 +6,35 @@ RAG engine, MedCards system, exam generator, study planner,
 and medical AI components.
 """
 
-# Importaciones básicas que siempre funcionan
-from .database import DatabaseManager, initialize_database
-from .utils import (
-    SystemChecker, FileUtils, TimeUtils, DataUtils, 
-    PerformanceUtils, MedicalUtils, run_system_diagnostic
-)
+print("🔄 Loading MedStudy Pro core components...")
 
-# Función para importaciones seguras
-def safe_import_advanced_components():
+# Importaciones básicas que siempre deben funcionar
+try:
+    from .database import DatabaseManager, initialize_database
+    print("   ✅ Database components loaded")
+except ImportError as e:
+    print(f"   ❌ Database components failed: {e}")
+    DatabaseManager = None
+    initialize_database = None
+
+try:
+    from .utils import (
+        SystemChecker, FileUtils, TimeUtils, DataUtils, 
+        PerformanceUtils, MedicalUtils, run_system_diagnostic
+    )
+    print("   ✅ Core utilities loaded")
+except ImportError as e:
+    print(f"   ❌ Core utilities failed: {e}")
+    SystemChecker = None
+    FileUtils = None
+    TimeUtils = None
+    DataUtils = None
+    PerformanceUtils = None
+    MedicalUtils = None
+    run_system_diagnostic = None
+
+# Función para importaciones avanzadas de manera segura
+def safe_import_advanced():
     """Importa componentes avanzados de manera segura"""
     components = {}
     
@@ -21,9 +42,12 @@ def safe_import_advanced_components():
     try:
         from .llm_manager import LLMManager
         components['LLMManager'] = LLMManager
-        print("✅ LLMManager imported successfully")
+        print("   ✅ LLM Manager loaded")
     except ImportError as e:
-        print(f"⚠️ LLMManager not available: {e}")
+        print(f"   ⚠️ LLM Manager not available: {e}")
+        components['LLMManager'] = None
+    except Exception as e:
+        print(f"   ⚠️ LLM Manager error: {e}")
         components['LLMManager'] = None
     
     # Study Session Manager
@@ -39,9 +63,9 @@ def safe_import_advanced_components():
             'ActiveRecallPrompt': ActiveRecallPrompt,
             'StudySegment': StudySegment
         })
-        print("✅ Study Session components imported successfully")
+        print("   ✅ Study Session components loaded")
     except ImportError as e:
-        print(f"⚠️ Study Session components not available: {e}")
+        print(f"   ⚠️ Study Session components not available: {e}")
         components.update({
             'StudySessionManager': None,
             'SessionStatus': None,
@@ -63,9 +87,9 @@ def safe_import_advanced_components():
             'KnowledgeGap': KnowledgeGap,
             'ConceptMastery': ConceptMastery
         })
-        print("✅ Medical Knowledge Analyzer imported successfully")
+        print("   ✅ Medical Knowledge Analyzer loaded")
     except ImportError as e:
-        print(f"⚠️ Medical Knowledge Analyzer not available: {e}")
+        print(f"   ⚠️ Medical Knowledge Analyzer not available: {e}")
         components.update({
             'MedicalKnowledgeAnalyzer': None,
             'KnowledgeLevel': None,
@@ -78,9 +102,9 @@ def safe_import_advanced_components():
     try:
         from .rag_engine import MedicalRAGEngine
         components['MedicalRAGEngine'] = MedicalRAGEngine
-        print("✅ RAG Engine imported successfully")
+        print("   ✅ RAG Engine loaded")
     except ImportError as e:
-        print(f"⚠️ RAG Engine not available: {e}")
+        print(f"   ⚠️ RAG Engine not available: {e}")
         components['MedicalRAGEngine'] = None
     
     # MedCards System
@@ -92,9 +116,9 @@ def safe_import_advanced_components():
             'CardType': CardType,
             'CardDifficulty': CardDifficulty
         })
-        print("✅ MedCards System imported successfully")
+        print("   ✅ MedCards System loaded")
     except ImportError as e:
-        print(f"⚠️ MedCards System not available: {e}")
+        print(f"   ⚠️ MedCards System not available: {e}")
         components.update({
             'MedCardsSystem': None,
             'MedCard': None,
@@ -110,9 +134,9 @@ def safe_import_advanced_components():
             'ExamQuestion': ExamQuestion,
             'ExamResult': ExamResult
         })
-        print("✅ Exam Generator imported successfully")
+        print("   ✅ Exam Generator loaded")
     except ImportError as e:
-        print(f"⚠️ Exam Generator not available: {e}")
+        print(f"   ⚠️ Exam Generator not available: {e}")
         components.update({
             'MedicalExamGenerator': None,
             'ExamQuestion': None,
@@ -127,9 +151,9 @@ def safe_import_advanced_components():
             'ConfidenceLevel': ConfidenceLevel,
             'StudyPriority': StudyPriority
         })
-        print("✅ Study Planner imported successfully")
+        print("   ✅ Study Planner loaded")
     except ImportError as e:
-        print(f"⚠️ Study Planner not available: {e}")
+        print(f"   ⚠️ Study Planner not available: {e}")
         components.update({
             'RetrospectiveStudyPlanner': None,
             'ConfidenceLevel': None,
@@ -138,22 +162,25 @@ def safe_import_advanced_components():
     
     return components
 
-# Ejecutar importaciones seguras
-print("🔄 Loading MedStudy Pro core components...")
-_advanced_components = safe_import_advanced_components()
+# Ejecutar importaciones avanzadas
+_advanced_components = safe_import_advanced()
 
-# Hacer disponibles las importaciones en el namespace del módulo
+# Hacer disponibles las importaciones en el namespace
 globals().update(_advanced_components)
 
-# Determinar qué está disponible para __all__
-_available_components = [k for k, v in _advanced_components.items() if v is not None]
+# Crear lista de exports
+_always_available = []
+if DatabaseManager:
+    _always_available.extend(['DatabaseManager', 'initialize_database'])
+if SystemChecker:
+    _always_available.extend([
+        'SystemChecker', 'FileUtils', 'TimeUtils', 'DataUtils',
+        'PerformanceUtils', 'MedicalUtils', 'run_system_diagnostic'
+    ])
 
-# Export main components
-__all__ = [
-    # Siempre disponibles
-    'DatabaseManager', 'initialize_database',
-    'SystemChecker', 'FileUtils', 'TimeUtils', 'DataUtils',
-    'PerformanceUtils', 'MedicalUtils', 'run_system_diagnostic'
-] + _available_components
+_optional_available = [k for k, v in _advanced_components.items() if v is not None]
 
-print(f"✅ Core module loaded. Available components: {len(_available_components)}")
+__all__ = _always_available + _optional_available
+
+available_count = len([x for x in globals().values() if x is not None and callable(x)])
+print(f"✅ Core module loaded. {available_count} components available.")
