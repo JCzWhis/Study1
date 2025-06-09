@@ -23,7 +23,7 @@ class LLMManager:
         self.logger = logging.getLogger('MedStudy.LLM')
         
         # Configuración Ollama
-        ollama_config = config.get_ollama_config()
+        ollama_config = self._get_ollama_config_safe(config)
         self.host = ollama_config['host']
         self.model = ollama_config['model']
         self.timeout = ollama_config['timeout']
@@ -40,6 +40,26 @@ class LLMManager:
         self._initial_check()
         
         self.logger.info(f"LLM Manager initialized for model: {self.model}")
+    
+    def _get_ollama_config_safe(self, config):
+        """Obtiene configuración de Ollama de manera segura"""
+        try:
+            if hasattr(config, 'get_ollama_config'):
+                return config.get_ollama_config()
+            else:
+                # Fallback para diferentes tipos de config
+                return {
+                    'host': getattr(config, 'get', lambda s,k,d: d)('Ollama', 'host', 'http://localhost:11434'),
+                    'model': getattr(config, 'get', lambda s,k,d: d)('Ollama', 'model', 'phi3:mini'),
+                    'timeout': getattr(config, 'get', lambda s,k,d: d)('Ollama', 'timeout', 60)
+                }
+        except Exception as e:
+            self.logger.warning(f"Could not get Ollama config: {e}, using defaults")
+            return {
+                'host': 'http://localhost:11434',
+                'model': 'phi3:mini', 
+                'timeout': 60
+            }
     
     def _initialize_medical_prompts(self):
         """Inicializa prompts especializados para medicina"""
@@ -128,12 +148,15 @@ class LLMManager:
                 'timestamp': datetime.now().isoformat(),
                 'ollama_status': {},
                 'model_status': {},
-                'performance': {}
+                'performance': {},
+                'target_model_available': False,
+                'ollama_reachable': False
             }
             
             # 1. Verificar conexión Ollama
             ollama_status = self._check_ollama_connection()
             status['ollama_status'] = ollama_status
+            status['ollama_reachable'] = ollama_status.get('running', False)
             
             if not ollama_status.get('running', False):
                 status['ready'] = False
@@ -142,6 +165,7 @@ class LLMManager:
             # 2. Verificar modelo específico
             model_status = self._check_model_availability()
             status['model_status'] = model_status
+            status['target_model_available'] = model_status.get('available', False)
             
             if not model_status.get('available', False):
                 status['ready'] = False
@@ -169,7 +193,9 @@ class LLMManager:
             return {
                 'ready': False,
                 'error': str(e),
-                'timestamp': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat(),
+                'target_model_available': False,
+                'ollama_reachable': False
             }
     
     def _check_ollama_connection(self) -> Dict[str, Any]:
@@ -434,16 +460,22 @@ class LLMManager:
             self.logger.error(f"Error en descarga automática: {e}")
             return False
     
-    def chat(self, message: str, context: List[Dict] = None, 
+    def chat(self, messages: List[Dict] = None, message: str = "", context: List[Dict] = None, 
              chat_type: str = "general", stream: bool = False) -> Union[str, Iterator[str]]:
-        """Chat principal con contexto médico"""
+        """Chat principal con contexto médico - Interfaz unificada"""
         
         if not self.is_ready and not self.ensure_ready():
             raise RuntimeError("Ollama no está listo para el chat")
         
-        # Preparar prompt según tipo de chat
-        system_prompt = self._get_system_prompt(chat_type)
-        full_prompt = self._build_chat_prompt(system_prompt, message, context)
+        # Manejar diferentes formatos de entrada
+        if messages:
+            # Formato moderno con lista de mensajes
+            full_prompt = self._build_messages_prompt(messages, chat_type)
+        elif message:
+            # Formato legacy con mensaje simple
+            full_prompt = self._build_chat_prompt(self._get_system_prompt(chat_type), message, context)
+        else:
+            raise ValueError("Debe proporcionar 'messages' o 'message'")
         
         try:
             if stream:
@@ -456,216 +488,31 @@ class LLMManager:
             self.is_ready = False  # Marcar como no listo para forzar verificación
             raise
     
+    def _build_messages_prompt(self, messages: List[Dict], chat_type: str) -> str:
+        """Construye prompt desde lista de mensajes (formato OpenAI)"""
+        system_prompt = self._get_system_prompt(chat_type)
+        prompt_parts = [system_prompt]
+        
+        for msg in messages:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            
+            if role == "system":
+                continue  # Ya incluido
+            elif role == "user":
+                prompt_parts.append(f"\nHumano: {content}")
+            elif role == "assistant":
+                prompt_parts.append(f"\nAsistente: {content}")
+        
+        # Asegurar que termine con prompt para asistente
+        if not prompt_parts[-1].startswith("\nAsistente:"):
+            prompt_parts.append("\nAsistente:")
+        
+        return "\n".join(prompt_parts)
+    
     def _get_system_prompt(self, chat_type: str) -> str:
         """Obtiene prompt del sistema según tipo de chat"""
         prompts = {
             "general": self.medical_prompts["system_base"],
             "case_study": self.medical_prompts["case_study"],
-            "differential": self.medical_prompts["differential"],
-            "pharmacology": self.medical_prompts["pharmacology"],
-            "teaching": self.medical_prompts["teaching"]
-        }
-        
-        return prompts.get(chat_type, self.medical_prompts["system_base"])
-    
-    def _build_chat_prompt(self, system_prompt: str, message: str, 
-                          context: List[Dict] = None) -> str:
-        """Construye prompt completo con contexto"""
-        prompt_parts = [system_prompt]
-        
-        # Agregar contexto de conversación
-        if context:
-            prompt_parts.append("\nCONTEXTO DE CONVERSACIÓN:")
-            for msg in context[-6:]:  # Últimos 3 intercambios
-                role = "Humano" if msg["role"] == "user" else "Asistente"
-                prompt_parts.append(f"{role}: {msg['content']}")
-        
-        # Pregunta actual
-        prompt_parts.append(f"\nHumano: {message}")
-        prompt_parts.append("Asistente:")
-        
-        return "\n".join(prompt_parts)
-    
-    def _single_chat(self, prompt: str) -> str:
-        """Chat sin streaming"""
-        response = requests.post(
-            f"{self.host}/api/generate",
-            json={
-                "model": self.model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {
-                    "temperature": 0.7,
-                    "top_p": 0.9,
-                    "max_tokens": 1000,
-                    "stop": ["Humano:", "Human:"]
-                }
-            },
-            timeout=self.timeout
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            return result.get('response', '').strip()
-        else:
-            raise RuntimeError(f"Error en API Ollama: {response.status_code}")
-    
-    def _stream_chat(self, prompt: str) -> Iterator[str]:
-        """Chat con streaming"""
-        response = requests.post(
-            f"{self.host}/api/generate",
-            json={
-                "model": self.model,
-                "prompt": prompt,
-                "stream": True,
-                "options": {
-                    "temperature": 0.7,
-                    "top_p": 0.9,
-                    "max_tokens": 1000,
-                    "stop": ["Humano:", "Human:"]
-                }
-            },
-            timeout=self.timeout,
-            stream=True
-        )
-        
-        if response.status_code != 200:
-            raise RuntimeError(f"Error en API Ollama: {response.status_code}")
-        
-        for line in response.iter_lines():
-            if line:
-                try:
-                    data = json.loads(line)
-                    if 'response' in data:
-                        chunk = data['response']
-                        if chunk:
-                            yield chunk
-                        
-                        if data.get('done', False):
-                            break
-                except json.JSONDecodeError:
-                    continue
-    
-    def generate_study_content(self, topic: str, specialty: str = "medicina_interna",
-                             duration_minutes: int = 45) -> Dict[str, Any]:
-        """Genera contenido de estudio específico"""
-        
-        prompt = f"""Como especialista en {specialty}, crea contenido de estudio completo sobre: {topic}
-
-ESPECIFICACIONES:
-- Duración objetivo: {duration_minutes} minutos de estudio
-- Enfoque: Medicina interna y reumatología
-- Nivel: Residente/Fellow
-
-ESTRUCTURA REQUERIDA:
-1. **Introducción y relevancia clínica**
-2. **Conceptos fundamentales**
-3. **Fisiopatología (si aplica)**
-4. **Manifestaciones clínicas**
-5. **Diagnóstico y estudios**
-6. **Tratamiento y manejo**
-7. **Casos clínicos ejemplo**
-8. **Puntos clave para recordar**
-9. **Preguntas de autoevaluación**
-
-ESTILO:
-- Académico pero accesible
-- Basado en evidencia médica
-- Incluye correlaciones clínicas
-- Ejemplos prácticos
-- Terminología médica precisa
-
-Genera contenido educativo de alta calidad:"""
-        
-        try:
-            content = self.chat(prompt, chat_type="teaching")
             
-            return {
-                'topic': topic,
-                'specialty': specialty,
-                'content': content,
-                'duration_minutes': duration_minutes,
-                'generated_at': datetime.now().isoformat(),
-                'word_count': len(content.split()),
-                'estimated_reading_time': len(content.split()) // 200  # 200 wpm
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error generando contenido: {e}")
-            raise
-    
-    def create_anki_cards(self, content: str, topic: str, 
-                         card_count: int = 10) -> List[Dict[str, str]]:
-        """Crea tarjetas Anki desde contenido"""
-        
-        prompt = f"""Basándote en el siguiente contenido médico sobre {topic}, crea exactamente {card_count} tarjetas tipo Anki:
-
-CONTENIDO:
-{content[:2000]}
-
-FORMATO REQUERIDO para cada tarjeta:
-TARJETA X:
-Pregunta: [pregunta clara y específica]
-Respuesta: [respuesta concisa pero completa]
-
-CRITERIOS:
-- Preguntas variadas (conceptos, diagnóstico, tratamiento)
-- Respuestas precisas y educativas
-- Nivel apropiado para residentes/fellows
-- Incluye datos importantes y correlaciones clínicas
-
-Genera las {card_count} tarjetas:"""
-        
-        try:
-            response = self.chat(prompt, chat_type="teaching")
-            cards = self._parse_anki_cards(response)
-            
-            return cards
-            
-        except Exception as e:
-            self.logger.error(f"Error creando tarjetas Anki: {e}")
-            return []
-    
-    def _parse_anki_cards(self, response: str) -> List[Dict[str, str]]:
-        """Parsea respuesta para extraer tarjetas Anki"""
-        cards = []
-        lines = response.split('\n')
-        
-        current_card = {}
-        
-        for line in lines:
-            line = line.strip()
-            
-            if line.startswith('TARJETA'):
-                if current_card:
-                    cards.append(current_card)
-                current_card = {}
-            
-            elif line.startswith('Pregunta:'):
-                current_card['question'] = line.replace('Pregunta:', '').strip()
-            
-            elif line.startswith('Respuesta:'):
-                current_card['answer'] = line.replace('Respuesta:', '').strip()
-            
-            elif 'question' in current_card and 'answer' not in current_card and line:
-                # Continuar pregunta en múltiples líneas
-                current_card['question'] += ' ' + line
-            
-            elif 'answer' in current_card and line and not line.startswith('TARJETA'):
-                # Continuar respuesta en múltiples líneas
-                current_card['answer'] += ' ' + line
-        
-        # Agregar última tarjeta
-        if current_card and 'question' in current_card and 'answer' in current_card:
-            cards.append(current_card)
-        
-        return cards
-    
-    def shutdown(self):
-        """Cierre limpio del manager"""
-        self.logger.info("Cerrando LLM Manager...")
-        self.is_ready = False
-        self.status_cache.clear()
-
-# Export main class
-__all__ = ['LLMManager']
