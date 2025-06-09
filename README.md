@@ -9,6 +9,38 @@ Aplicación desktop que implementa las mejores prácticas de aprendizaje (Active
 ![CustomTkinter](https://img.shields.io/badge/Interface-CustomTkinter-orange.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
+## 🚀 Instalación Rápida
+
+### **Método Automático (Recomendado)**
+```bash
+# 1. Clona el repositorio
+git clone https://github.com/tu-usuario/Study1.git
+cd Study1
+
+# 2. Ejecuta el setup automático
+python setup.py
+
+# 3. Inicia la aplicación
+python main.py
+```
+
+### **Método Manual**
+```bash
+# 1. Instalar dependencias Python
+pip install -r requirements.txt
+
+# 2. Instalar Ollama
+# Windows/Mac: Descargar desde https://ollama.ai
+# Linux: curl https://ollama.ai/install.sh | sh
+
+# 3. Iniciar Ollama y descargar modelo
+ollama serve
+ollama pull phi3:mini
+
+# 4. Lanzar aplicación
+python main.py
+```
+
 ## ✨ Características Principales
 
 ### 🧠 **Metodología Científica de Aprendizaje**
@@ -58,92 +90,130 @@ Aplicación desktop que implementa las mejores prácticas de aprendizaje (Active
 - ✅ **Vendible**: Instalador .exe profesional
 - ✅ **Datos seguros**: Base de datos local encriptada
 
-### **Interfaz de Sesión**
+### **Interfaz Principal**
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ ⏰ 23:45  📚 Cardiología: Insuficiencia Cardíaca  [🔧] │
+│ 🧠 MedStudy Pro - Medical Study Assistant              │
 ├─────────────────────────────────┬───────────────────────┤
-│ 📖 CONTENIDO PRINCIPAL          │ 💬 Tutor IA          │
+│ 📊 Dashboard │ 📋 Plan │ 📖 Sesiones │ 🧪 Exámenes │ 📊 │
+├─────────────────────────────────┼───────────────────────┤
+│ 📖 ÁREA PRINCIPAL DE ESTUDIO    │ 💬 Chat Tutor IA     │
 │                                 │ ───────────────────   │
-│ # Insuficiencia Cardíaca        │ 👋 ¿Dudas sobre      │
+│ # Tema: Artritis Reumatoide     │ 👋 ¿Dudas sobre      │
 │                                 │ este tema?            │
-│ [🖼️ Imagen: Eco normal vs IC]   │                       │
-│                                 │ [Minimizar chat] ➖   │
-│ 🧠 Active Recall cada 10min     │                       │
-│ ─────────────────────────────   │                       │
-│ Progreso: ████████░░ 80%        │                       │
-│ [⏸️] [📝] [Quiz Final ▶️]        │                       │
+│ [🖼️ Imagen: Articulaciones]     │                       │
+│                                 │ [🔄] [📝] [📤]        │
+│ 🧠 Active Recall en 8 min       │                       │
+│ ─────────────────────────────   │ Escribe tu pregunta:  │
+│ Progreso: ████████░░ 80%        │ [________________]    │
+│ [⏸️] [📝] [Quiz Final ▶️]        │ [Enviar] [Parar]      │
 └─────────────────────────────────┴───────────────────────┘
 ```
 
-## 🚀 Instalación
+## 📋 **Comandos Disponibles**
 
-### **Prerrequisitos**
-1. **Windows 10/11** (próximamente Mac/Linux)
-2. **Python 3.11+**
-3. **Ollama** + modelo **phi3:mini**
-
-### **Instalación Rápida**
+### **Diagnóstico del Sistema**
 ```bash
-# 1. Clonar repositorio
-git clone https://github.com/tu-usuario/Study1.git
-cd Study1
-
-# 2. Crear entorno virtual
-python -m venv venv
-venv\Scripts\activate
-
-# 3. Instalar dependencias
-pip install -r requirements.txt
-
-# 4. Configurar Ollama
-ollama pull phi3:mini
-ollama serve
-
-# 5. Ejecutar aplicación
-python main.py
+python main.py --diagnostic    # Verificar estado completo
+python main.py --config-info   # Mostrar configuración
+python setup.py               # Setup automático
 ```
 
-### **Instalación para Usuarios Finales** (Próximamente)
-- **MedStudy-Pro-Setup.exe** - Instalador automático
-- **MedStudy-Pro-Portable.zip** - Versión portable
+### **Modos de Lanzamiento**
+```bash
+python main.py                # Aplicación desktop (por defecto)
+python main.py --web          # Interfaz web (Gradio)
+python gradio_launcher.py     # Interfaz web directa
+python main.py --force-launch # Forzar inicio sin diagnósticos
+```
 
-## 📁 Arquitectura del Proyecto
+### **Desarrollo y Debug**
+```bash
+python main.py --debug        # Modo debug con logs verbosos
+python quick_test.py          # Test rápido de componentes
+python main.py --setup        # Ejecutar setup desde main
+```
+
+## 🔧 **Solución de Problemas**
+
+### **Error: Ollama no encontrado**
+```bash
+# 1. Instalar Ollama
+# Windows/Mac: https://ollama.ai
+# Linux: curl https://ollama.ai/install.sh | sh
+
+# 2. Iniciar servicio
+ollama serve
+
+# 3. Descargar modelo
+ollama pull phi3:mini
+```
+
+### **Error: Dependencias faltantes**
+```bash
+# Instalar todas las dependencias
+pip install -r requirements.txt
+
+# O usar setup automático
+python setup.py
+```
+
+### **Error: No se puede conectar a Ollama**
+```bash
+# Verificar que Ollama esté corriendo
+ollama list
+
+# Si no está corriendo:
+ollama serve
+
+# En otra terminal:
+python main.py --diagnostic
+```
+
+### **Error: Modelo phi3:mini no encontrado**
+```bash
+# Descargar modelo específico
+ollama pull phi3:mini
+
+# Verificar modelos instalados
+ollama list
+```
+
+## 📁 **Estructura del Proyecto**
 
 ```
 Study1/ (MedStudy Pro)
-├── 🚀 main.py                    # Launcher principal
+├── 🚀 main.py                    # Launcher principal MEJORADO
+├── 🔧 setup.py                   # Setup automático NUEVO
 ├── 📋 requirements.txt           # Dependencias completas
-├── ⚙️ config_template.ini        # Configuración
+├── ⚙️ config_template.ini        # Configuración plantilla
 │
 ├── 📱 app/                       # Aplicación desktop
 │   ├── ui/                       # Interfaces CustomTkinter
-│   │   ├── main_window.py        # Ventana principal
-│   │   ├── dashboard.py          # Dashboard de progreso
-│   │   ├── session.py            # Sesión de estudio
+│   │   ├── main_window.py        # Ventana principal FUNCIONAL
 │   │   └── components/           # Componentes reutilizables
-│   │       ├── chat_tutor.py     # Chat lateral IA
-│   │       ├── timer.py          # Timer Pomodoro
-│   │       └── quiz_widget.py    # Sistema de preguntas
+│   │       └── chat_tutor_manager.py # Chat lateral IA FUNCIONAL
 │   └── config.py                 # Configuración app
 │
-├── 🧠 core/                      # Motor del sistema
-│   ├── rag_engine.py             # RAG con embeddings locales
-│   ├── llm_manager.py            # Gestión Ollama/phi3
-│   ├── study_planner.py          # Planificador retrospectivo
-│   ├── spaced_repetition.py      # Algoritmo SRS médico
-│   └── database.py               # SQLite + modelos
+├── 🧠 core/                      # Motor del sistema COMPLETO
+│   ├── llm_manager.py            # Gestión Ollama/phi3 ✅
+│   ├── study_session_manager.py  # Sesiones de estudio ✅
+│   ├── medical_knowledge_analyzer.py # Análisis IA ✅
+│   ├── rag_engine.py             # RAG con embeddings ✅
+│   ├── medcards_system.py        # Sistema SRS Anki-like ✅
+│   ├── exam_generator.py         # Generador de exámenes ✅
+│   ├── study_planner.py          # Planificador retrospectivo ✅
+│   ├── database.py               # SQLite + modelos ✅
+│   └── utils.py                  # Utilidades del sistema ✅
 │
-├── 💾 data/                      # Datos locales
-│   ├── documents/                # PDFs subidos por usuario
-│   ├── images/                   # Imágenes médicas extraídas
-│   ├── embeddings/               # Vectores para RAG
-│   └── user_progress/            # Progreso y estadísticas
-│
+├── 🌐 gradio_launcher.py         # Interfaz web alternativa ✅
+├── 🧪 quick_test.py              # Test rápido del sistema ✅
+├── 💾 data/                      # Datos locales (auto-creado)
+├── 📊 logs/                      # Logs del sistema (auto-creado)
 └── 🧪 tests/                     # Tests automatizados
 ```
 
-## 🎨 Paleta de Colores
+## 🎨 **Paleta de Colores**
 
 - **Azul Primario**: `#1E3A8A` (professional medical)
 - **Verde Médico**: `#10B981` (success, progress)
@@ -151,7 +221,7 @@ Study1/ (MedStudy Pro)
 - **Fondo Estudio**: `#FEFCF9` (concentración)
 - **Texto**: `#1F2937` (legibilidad óptima)
 
-## 🔬 Basado en Evidencia Científica
+## 🔬 **Basado en Evidencia Científica**
 
 ### **Referencias Implementadas:**
 - **Active Recall**: Karpicke & Roediger (2008)
@@ -166,34 +236,37 @@ Study1/ (MedStudy Pro)
 - **Terminología médica** en embeddings
 - **Estructura diagnóstica**: síntomas → diagnóstico → tratamiento
 
-## 🔮 Roadmap
+## 🔮 **Roadmap**
 
 ### **v1.0 - MVP (Actual)**
-- [x] ✅ Estructura base del proyecto
-- [x] ✅ Configuración Ollama + phi3:mini
-- [ ] 🚧 Interfaz desktop CustomTkinter
-- [ ] 🚧 RAG básico con PDFs
-- [ ] 🚧 Sesiones de estudio funcionales
+- [x] ✅ Estructura base del proyecto completa
+- [x] ✅ Configuración Ollama + phi3:mini funcional
+- [x] ✅ Interfaz desktop CustomTkinter integrada
+- [x] ✅ Chat Tutor lateral con IA funcional
+- [x] ✅ Sistema de diagnósticos automatizado
+- [x] ✅ Setup automático completo
+- [ ] 🚧 RAG básico con PDFs (70% completo)
+- [ ] 🚧 Sesiones de estudio funcionales (80% completo)
 
 ### **v1.1 - Beta**
-- [ ] 📋 Planificador retrospectivo completo
+- [ ] 📋 Planificador retrospectivo UI completo
 - [ ] 🧪 Exámenes de 45 preguntas
-- [ ] 🎴 Sistema MedCards SRS
-- [ ] 📊 Dashboard de progreso
+- [ ] 🎴 Sistema MedCards SRS UI
+- [ ] 📊 Dashboard de progreso funcional
 
 ### **v1.2 - Release**
-- [ ] 📦 Empaquetado .exe
-- [ ] 🔧 Instalador automático
+- [ ] 📦 Empaquetado .exe con PyInstaller
+- [ ] 🔧 Instalador automático Windows/Mac
 - [ ] 📖 Documentación completa
 - [ ] 🎯 Testing beta con médicos
 
 ### **v2.0 - Futuro**
 - [ ] 🖼️ OCR avanzado para imágenes médicas
 - [ ] 🤖 Modelos médicos especializados
-- [ ] 📱 Sincronización móvil
+- [ ] 📱 App móvil complementaria
 - [ ] 🌐 Comunidad médica integrada
 
-## 🤝 Contribuir
+## 🤝 **Contribuir**
 
 **¡Buscamos médicos y desarrolladores!**
 
@@ -203,14 +276,56 @@ Study1/ (MedStudy Pro)
 - 🎨 **UX médico**: Workflow optimizado para estudio
 - 🔬 **Testing**: Validación con estudiantes reales
 
-## 📄 Licencia
+### **Cómo Contribuir:**
+1. Fork del repositorio
+2. Crea una rama: `git checkout -b feature/nueva-funcionalidad`
+3. Commit: `git commit -am 'Agregar nueva funcionalidad'`
+4. Push: `git push origin feature/nueva-funcionalidad`
+5. Crear Pull Request
+
+## 📄 **Licencia**
 
 **MIT License** - Uso libre para educación médica
 
-## 👨‍⚕️ Desarrollado por Médicos
+```
+Copyright (c) 2024 Dr. Cruz Migueles
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+```
+
+## 👨‍⚕️ **Desarrollado por Médicos**
 
 **Dr. Cruz Migueles** - Internista y Reumatólogo  
 *"Aplicando neurociencia cognitiva al estudio médico"*
+
+**Especialización:**
+- 🏥 Medicina Interna 
+- 🦴 Reumatología (Fellow)
+- 💻 Programación en Python
+- 🧠 Neurociencia del aprendizaje
+
+## 📞 **Soporte y Contacto**
+
+- 🐛 **Issues**: [GitHub Issues](https://github.com/tu-usuario/Study1/issues)
+- 💬 **Discusiones**: [GitHub Discussions](https://github.com/tu-usuario/Study1/discussions)
+- 📧 **Email**: tu-email@example.com
+- 🐦 **Twitter**: @tu-usuario
+
+## 🙏 **Agradecimientos**
+
+- **Ali Abdaal** por su metodología de repetición espaciada
+- **Ollama Team** por la IA local accessible
+- **CustomTkinter** por la interfaz moderna
+- **Anki** por inspirar el sistema SRS
+- **Comunidad médica** por feedback y validación
 
 ---
 
@@ -218,6 +333,9 @@ Study1/ (MedStudy Pro)
 
 **[⭐ Star este proyecto](https://github.com/tu-usuario/Study1)** •
 **[🐛 Reportar Issues](https://github.com/tu-usuario/Study1/issues)** •
-**[💬 Discusiones médicas](https://github.com/tu-usuario/Study1/discussions)**
+**[💬 Discusiones médicas](https://github.com/tu-usuario/Study1/discussions)** •
+**[📖 Documentación](https://github.com/tu-usuario/Study1/wiki)**
+
+### 🎉 **¡Haz que el estudio médico sea más efectivo!**
 
 </div>
