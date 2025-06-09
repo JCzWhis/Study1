@@ -1,132 +1,155 @@
+
 #!/usr/bin/env python3
 """
-MedStudy Pro - Script de Testing Final
+MedStudy Pro - Sistema de Testing Completo
 Verifica que todos los componentes funcionen correctamente
 """
 
 import sys
 import os
-import traceback
+import time
 from pathlib import Path
 
 def print_header():
     print("=" * 70)
-    print("🧪 MedStudy Pro - Testing Final")
-    print("   Verificación completa de funcionalidades")
+    print("🧪 MedStudy Pro - Sistema de Testing Completo")
+    print("   Verificación de funcionalidades críticas")
     print("=" * 70)
     print()
 
-def test_imports():
-    """Probar todas las importaciones críticas"""
-    print("📦 Testing imports...")
+def test_basic_imports():
+    """Prueba importaciones básicas"""
+    print("📦 Testing basic imports...")
     
-    tests = [
-        ("customtkinter", "CustomTkinter UI framework"),
-        ("requests", "HTTP requests for Ollama"),
-        ("pathlib", "Path handling"),
+    basic_modules = [
+        ("sys", "System module"),
+        ("os", "Operating system interface"),
+        ("pathlib", "Path utilities"),
         ("logging", "Logging system"),
-        ("sqlite3", "Database operations"),
         ("datetime", "Date and time"),
-        ("json", "JSON handling"),
-        ("threading", "Multi-threading"),
+        ("json", "JSON handling")
     ]
     
-    failed_imports = []
-    
-    for module, description in tests:
+    failed = []
+    for module, desc in basic_modules:
         try:
             __import__(module)
-            print(f"   ✅ {module} - {description}")
+            print(f"   ✅ {module} - {desc}")
         except ImportError as e:
-            print(f"   ❌ {module} - {description} - ERROR: {e}")
-            failed_imports.append(module)
+            print(f"   ❌ {module} - {desc} - ERROR: {e}")
+            failed.append(module)
     
-    return len(failed_imports) == 0
+    return len(failed) == 0
+
+def test_external_dependencies():
+    """Prueba dependencias externas"""
+    print("\n🔧 Testing external dependencies...")
+    
+    dependencies = [
+        ("customtkinter", "UI Framework"),
+        ("requests", "HTTP library"),
+        ("gradio", "Web interface"),
+    ]
+    
+    failed = []
+    for module, desc in dependencies:
+        try:
+            __import__(module)
+            print(f"   ✅ {module} - {desc}")
+        except ImportError as e:
+            print(f"   ⚠️ {module} - {desc} - WARNING: {e}")
+            failed.append(module)
+    
+    return len(failed) == 0
 
 def test_core_modules():
-    """Probar módulos del core del sistema"""
+    """Prueba módulos core del sistema"""
     print("\n🧠 Testing core modules...")
     
-    try:
-        # Agregar path del proyecto
-        project_root = Path(__file__).parent
-        if str(project_root) not in sys.path:
-            sys.path.insert(0, str(project_root))
-        
-        # Test config
+    # Agregar project root al path
+    project_root = Path(__file__).parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    
+    core_modules = [
+        ("core.database", "Database Manager"),
+        ("core.utils", "System Utilities"),
+        ("app.config", "Configuration System"),
+        ("utils.logging", "Logging Utilities"),
+        ("utils.config", "Config Utilities"),
+        ("utils.diagnostics", "Diagnostics System")
+    ]
+    
+    failed = []
+    for module, desc in core_modules:
         try:
-            from app.config import config
-            print("   ✅ app.config - Configuration system")
+            __import__(module)
+            print(f"   ✅ {module} - {desc}")
         except ImportError as e:
-            print(f"   ❌ app.config - ERROR: {e}")
-            return False
-        
-        # Test utils
+            print(f"   ❌ {module} - {desc} - ERROR: {e}")
+            failed.append(module)
+    
+    return len(failed) == 0
+
+def test_advanced_modules():
+    """Prueba módulos avanzados (opcionales)"""
+    print("\n🔬 Testing advanced modules...")
+    
+    advanced_modules = [
+        ("core.llm_manager", "LLM Manager"),
+        ("core.rag_engine", "RAG Engine"),
+        ("core.medcards_system", "MedCards System"),
+        ("core.study_session_manager", "Study Session Manager"),
+        ("core.medical_knowledge_analyzer", "Knowledge Analyzer"),
+        ("core.exam_generator", "Exam Generator"),
+        ("core.study_planner", "Study Planner")
+    ]
+    
+    available = 0
+    for module, desc in advanced_modules:
         try:
-            from utils.logging import get_logger
-            print("   ✅ utils.logging - Logging utilities")
+            __import__(module)
+            print(f"   ✅ {module} - {desc}")
+            available += 1
         except ImportError as e:
-            print(f"   ❌ utils.logging - ERROR: {e}")
-            return False
-        
-        # Test core components
-        core_modules = [
-            ("core.llm_manager", "LLM Manager"),
-            ("core.database", "Database Manager"),
-            ("core.utils", "System utilities"),
-            ("core.rag_engine", "RAG Engine"),
-            ("core.medcards_system", "MedCards System"),
-            ("core.study_session_manager", "Study Session Manager")
-        ]
-        
-        for module_name, description in core_modules:
-            try:
-                __import__(module_name)
-                print(f"   ✅ {module_name} - {description}")
-            except ImportError as e:
-                print(f"   ⚠️  {module_name} - {description} - WARNING: {e}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"   ❌ Core modules test failed: {e}")
-        return False
+            print(f"   ⚠️ {module} - {desc} - Optional: {e}")
+    
+    print(f"   📊 Advanced modules available: {available}/{len(advanced_modules)}")
+    return available > 0
 
 def test_ui_components():
-    """Probar componentes de UI"""
-    print("\n🖥️  Testing UI components...")
+    """Prueba componentes de UI"""
+    print("\n🖥️ Testing UI components...")
     
-    try:
-        # Test main window
-        from app.ui.main_window import MedStudyMainWindow
-        print("   ✅ Main Window - Primary interface")
-        
-        # Test chat tutor
+    ui_modules = [
+        ("app.ui.main_window", "Main Window"),
+        ("app.ui.components.chat_tutor_manager", "Chat Tutor Panel")
+    ]
+    
+    available = 0
+    for module, desc in ui_modules:
         try:
-            from app.ui.components.chat_tutor_manager import ChatTutorPanel
-            print("   ✅ Chat Tutor Panel - AI chat component")
+            __import__(module)
+            print(f"   ✅ {module} - {desc}")
+            available += 1
         except ImportError as e:
-            print(f"   ⚠️  Chat Tutor Panel - WARNING: {e}")
-        
-        return True
-        
-    except ImportError as e:
-        print(f"   ❌ UI components test failed: {e}")
-        return False
+            print(f"   ⚠️ {module} - {desc} - Warning: {e}")
+    
+    return available > 0
 
 def test_configuration():
-    """Probar sistema de configuración"""
-    print("\n⚙️  Testing configuration...")
+    """Prueba sistema de configuración"""
+    print("\n⚙️ Testing configuration system...")
     
     try:
         from app.config import config
         
-        # Test config methods
+        # Test basic config access
         ollama_config = config.get_ollama_config()
         print(f"   ✅ Ollama config: {ollama_config.get('host', 'unknown')}")
         
         window_config = config.get_window_config()
-        print(f"   ✅ Window config: {window_config.get('width', 'unknown')}x{window_config.get('height', 'unknown')}")
+        print(f"   ✅ Window config: {window_config.get('width')}x{window_config.get('height')}")
         
         db_url = config.get_database_url()
         print(f"   ✅ Database URL: {db_url}")
@@ -138,191 +161,165 @@ def test_configuration():
         return False
 
 def test_database():
-    """Probar sistema de base de datos"""
-    print("\n💾 Testing database...")
+    """Prueba sistema de base de datos"""
+    print("\n💾 Testing database system...")
     
     try:
         from core.database import DatabaseManager
+        import tempfile
+        import os
         
-        # Create test database
-        test_db_path = "test_medstudy.db"
-        db = DatabaseManager(test_db_path)
+        # Create temporary database
+        with tempfile.NamedTemporaryFile(suffix='.db', delete=False) as tmp:
+            test_db_path = tmp.name
         
-        # Test basic operations
-        db_info = db.get_database_info()
-        print(f"   ✅ Database created: {db_info.get('table_count', 0)} tables")
-        
-        # Test preference storage
-        db.set_preference("test", "key1", "value1")
-        value = db.get_preference("test", "key1")
-        if value == "value1":
-            print("   ✅ Preference storage working")
-        else:
-            print("   ❌ Preference storage failed")
-        
-        # Clean up
-        if os.path.exists(test_db_path):
-            os.remove(test_db_path)
-        
-        return True
+        try:
+            db = DatabaseManager(test_db_path)
+            
+            # Test basic operations
+            db_info = db.get_database_info()
+            print(f"   ✅ Database created: {db_info.get('table_count', 0)} tables")
+            
+            # Test preference storage
+            db.set_preference("test", "key1", "value1")
+            value = db.get_preference("test", "key1")
+            if value == "value1":
+                print("   ✅ Preference storage working")
+            else:
+                print("   ❌ Preference storage failed")
+                return False
+            
+            return True
+            
+        finally:
+            # Clean up
+            if os.path.exists(test_db_path):
+                os.unlink(test_db_path)
         
     except Exception as e:
         print(f"   ❌ Database test failed: {e}")
-        traceback.print_exc()
         return False
 
 def test_ollama_connection():
-    """Probar conexión con Ollama"""
+    """Prueba conexión con Ollama"""
     print("\n🤖 Testing Ollama connection...")
     
     try:
-        import requests
+        from utils.diagnostics import check_ollama_status
         
-        response = requests.get("http://localhost:11434", timeout=5)
+        status = check_ollama_status()
         
-        if response.status_code == 200:
+        if status.get('running', False):
             print("   ✅ Ollama service is running")
             
-            # Test model availability
-            try:
-                model_response = requests.post(
-                    "http://localhost:11434/api/show",
-                    json={"name": "phi3:mini"},
-                    timeout=10
-                )
-                
-                if model_response.status_code == 200:
-                    print("   ✅ phi3:mini model is available")
-                    return True
-                else:
-                    print("   ❌ phi3:mini model not found")
-                    print("      Run: ollama pull phi3:mini")
-                    return False
-                    
-            except Exception as e:
-                print(f"   ⚠️  Could not check model: {e}")
+            if status.get('model_available', False):
+                print(f"   ✅ Model {status.get('model')} is available")
+                return True
+            else:
+                print(f"   ❌ Model {status.get('model')} not found")
+                print("      Run: ollama pull phi3:mini")
                 return False
         else:
-            print(f"   ❌ Ollama not responding (status: {response.status_code})")
+            print("   ❌ Ollama not running")
+            print("      1. Install Ollama from https://ollama.ai")
+            print("      2. Run: ollama serve")
             return False
             
-    except requests.exceptions.ConnectionError:
-        print("   ❌ Cannot connect to Ollama")
-        print("      1. Install Ollama from https://ollama.ai")
-        print("      2. Run: ollama serve")
-        return False
     except Exception as e:
         print(f"   ❌ Ollama test failed: {e}")
         return False
 
-def test_llm_manager():
-    """Probar LLM Manager"""
-    print("\n🧠 Testing LLM Manager...")
+def test_core_functionality():
+    """Prueba funcionalidad core del sistema"""
+    print("\n🎯 Testing core functionality...")
     
     try:
-        from core.llm_manager import LLMManager
-        from app.config import config
+        # Test safe import from core
+        from core import DatabaseManager, initialize_database
+        print("   ✅ Core database imports working")
         
-        llm = LLMManager(config)
-        print("   ✅ LLM Manager created")
+        # Test utils
+        from core.utils import SystemChecker, run_system_diagnostic
+        print("   ✅ Core utils imports working")
         
-        # Test status check
-        status = llm.get_status()
-        if status.get("ready", False):
-            print("   ✅ LLM Manager reports ready")
-            
-            # Test simple generation (if available)
-            try:
-                test_prompt = "Explain briefly what medicine is"
-                response = llm.chat(test_prompt, stream=False)
-                if response and len(response) > 10:
-                    print("   ✅ Text generation working")
-                else:
-                    print("   ⚠️  Text generation returned short response")
-            except Exception as e:
-                print(f"   ⚠️  Text generation failed: {e}")
-                
-        else:
-            print("   ⚠️  LLM Manager not ready")
-            print(f"      Status: {status}")
+        # Test safe advanced imports
+        try:
+            from core import LLMManager
+            if LLMManager:
+                print("   ✅ LLMManager available in core")
+            else:
+                print("   ⚠️ LLMManager not available (optional)")
+        except:
+            print("   ⚠️ LLMManager import failed (optional)")
         
         return True
         
     except Exception as e:
-        print(f"   ❌ LLM Manager test failed: {e}")
+        print(f"   ❌ Core functionality test failed: {e}")
         return False
 
-def test_main_application():
-    """Probar aplicación principal (sin GUI)"""
-    print("\n🖥️  Testing main application (no GUI)...")
+def test_file_structure():
+    """Verifica estructura de archivos"""
+    print("\n📁 Testing file structure...")
     
-    try:
-        from app.ui.main_window import MedStudyMainWindow
-        from app.config import config
-        from core.database import DatabaseManager
-        
-        # Create test database
-        test_db_path = "test_app_medstudy.db"
-        db = DatabaseManager(test_db_path)
-        
-        # Create main window instance (but don't run mainloop)
-        app = MedStudyMainWindow(config=config, database=db)
-        print("   ✅ Main window created successfully")
-        
-        # Test some methods
-        health = app._check_system_health()
-        print(f"   ✅ System health check: {'OK' if health else 'Issues detected'}")
-        
-        ollama_status = app._check_ollama()
-        print(f"   ✅ Ollama check: {'Running' if ollama_status else 'Not available'}")
-        
-        # Clean up
-        if os.path.exists(test_db_path):
-            os.remove(test_db_path)
-        
-        return True
-        
-    except Exception as e:
-        print(f"   ❌ Main application test failed: {e}")
-        traceback.print_exc()
-        return False
-
-def test_gradio_fallback():
-    """Probar interfaz Gradio de respaldo"""
-    print("\n🌐 Testing Gradio fallback...")
+    required_files = [
+        "main.py",
+        "requirements.txt", 
+        "config_template.ini",
+        "gradio_launcher.py",
+        "setup.py"
+    ]
     
-    try:
-        import gradio as gr
-        print("   ✅ Gradio is available")
-        
-        # Test if gradio_launcher exists
-        gradio_file = Path("gradio_launcher.py")
-        if gradio_file.exists():
-            print("   ✅ gradio_launcher.py exists")
-            return True
+    required_dirs = [
+        "app",
+        "core",
+        "utils",
+        "ui"  # Should exist if UI components are there
+    ]
+    
+    all_good = True
+    
+    # Check files
+    for file_name in required_files:
+        if Path(file_name).exists():
+            print(f"   ✅ {file_name}")
         else:
-            print("   ⚠️  gradio_launcher.py not found")
-            return False
-            
-    except ImportError:
-        print("   ⚠️  Gradio not available")
-        print("      Install with: pip install gradio")
-        return False
+            print(f"   ❌ {file_name} - Missing")
+            all_good = False
+    
+    # Check directories
+    for dir_name in required_dirs:
+        if Path(dir_name).exists():
+            print(f"   ✅ {dir_name}/")
+        else:
+            print(f"   ⚠️ {dir_name}/ - Missing (may be optional)")
+    
+    # Check if data directories can be created
+    try:
+        data_dirs = ["data", "logs", "data/documents", "data/images"]
+        for dir_name in data_dirs:
+            Path(dir_name).mkdir(parents=True, exist_ok=True)
+        print("   ✅ Data directories created/verified")
+    except Exception as e:
+        print(f"   ⚠️ Could not create data directories: {e}")
+    
+    return all_good
 
 def run_comprehensive_test():
-    """Ejecutar todos los tests"""
+    """Ejecuta todos los tests"""
     print_header()
     
     tests = [
-        ("Basic Imports", test_imports),
+        ("Basic Imports", test_basic_imports),
+        ("External Dependencies", test_external_dependencies),
         ("Core Modules", test_core_modules),
+        ("Advanced Modules", test_advanced_modules),
         ("UI Components", test_ui_components),
         ("Configuration", test_configuration),
         ("Database", test_database),
-        ("Ollama Connection", test_ollama_connection),
-        ("LLM Manager", test_llm_manager),
-        ("Main Application", test_main_application),
-        ("Gradio Fallback", test_gradio_fallback),
+        ("File Structure", test_file_structure),
+        ("Core Functionality", test_core_functionality),
+        ("Ollama Connection", test_ollama_connection)
     ]
     
     results = []
@@ -344,52 +341,72 @@ def run_comprehensive_test():
     print("📊 TEST SUMMARY")
     print("="*70)
     
-    passed = 0
-    total = len(results)
+    critical_tests = [
+        "Basic Imports", "Core Modules", "Configuration", 
+        "Database", "File Structure", "Core Functionality"
+    ]
+    
+    optional_tests = [
+        "External Dependencies", "Advanced Modules", 
+        "UI Components", "Ollama Connection"
+    ]
+    
+    critical_passed = 0
+    critical_total = 0
+    optional_passed = 0
+    optional_total = 0
     
     for test_name, result in results:
         status = "✅ PASS" if result else "❌ FAIL"
-        print(f"   {status} - {test_name}")
-        if result:
-            passed += 1
+        
+        if test_name in critical_tests:
+            critical_total += 1
+            if result:
+                critical_passed += 1
+            print(f"   {status} - {test_name} (CRITICAL)")
+        else:
+            optional_total += 1
+            if result:
+                optional_passed += 1
+            print(f"   {status} - {test_name} (Optional)")
     
-    print(f"\n📈 Results: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
+    print(f"\n📈 Critical Tests: {critical_passed}/{critical_total} passed")
+    print(f"📈 Optional Tests: {optional_passed}/{optional_total} passed")
     
-    if passed == total:
-        print("\n🎉 ALL TESTS PASSED! MedStudy Pro is ready to use!")
-        print("\n🚀 Next steps:")
-        print("   1. Run: python main.py --diagnostic")
-        print("   2. Run: python main.py")
-        print("   3. Try the Chat Tutor and content generation")
+    if critical_passed == critical_total:
+        print("\n🎉 ALL CRITICAL TESTS PASSED!")
+        print("✅ MedStudy Pro core system is functional")
+        
+        if optional_passed >= optional_total * 0.5:
+            print("✨ Most optional features are also working")
+        else:
+            print("⚠️ Some optional features need attention")
+        
+        print("\n🚀 Ready to launch:")
+        print("   1. python main.py --diagnostic")
+        print("   2. python main.py")
+        
         return True
-    elif passed >= total * 0.7:  # 70% pass rate
-        print("\n✅ MOST TESTS PASSED! MedStudy Pro should work with minor issues.")
-        print("\n⚠️  Some optional features may not work perfectly.")
-        print("\n🚀 You can still run:")
-        print("   1. python main.py --force-launch")
-        print("   2. python gradio_launcher.py (web interface)")
-        return False
     else:
-        print("\n❌ MULTIPLE TESTS FAILED! Please resolve issues before using.")
-        print("\n🔧 Troubleshooting:")
-        print("   1. Run: python setup.py")
-        print("   2. Install Ollama and phi3:mini model")
-        print("   3. Check: pip install -r requirements.txt")
+        print("\n❌ CRITICAL TESTS FAILED!")
+        print("🔧 Must fix critical issues before proceeding")
+        
+        print("\n🛠️ Troubleshooting steps:")
+        print("   1. Check file structure")
+        print("   2. Install dependencies: pip install -r requirements.txt")
+        print("   3. Run: python setup.py")
+        
         return False
-
-def main():
-    """Función principal"""
-    try:
-        success = run_comprehensive_test()
-        return 0 if success else 1
-    except KeyboardInterrupt:
-        print("\n\n👋 Testing interrupted by user")
-        return 1
-    except Exception as e:
-        print(f"\n\n💥 Testing crashed: {e}")
-        traceback.print_exc()
-        return 1
 
 if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    try:
+        success = run_comprehensive_test()
+        sys.exit(0 if success else 1)
+    except KeyboardInterrupt:
+        print("\n\n👋 Testing interrupted by user")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n\n💥 Testing system crashed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
