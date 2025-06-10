@@ -47,6 +47,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         self.current_thread: Optional[threading.Thread] = None
         self.llm_status: str = "unknown"  # unknown, checking, ready, error
         self.current_study_context: Optional[str] = None
+        self.placeholder_text = "Pregunta al tutor médico..."
 
         # UI
         self.grid_columnconfigure(0, weight=1)
@@ -132,10 +133,13 @@ class ChatTutorPanel(ctk.CTkFrame):
             height=60,
             font=ctk.CTkFont(size=12),
             text_color=self.text_color,
-            placeholder_text="Pregunta al tutor médico...",
             wrap="word"
         )
         self.message_entry.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
+        # Add placeholder text manually
+        self.message_entry.insert("1.0", self.placeholder_text)
+        self.message_entry.bind("<FocusIn>", self._on_entry_focus_in)
+        self.message_entry.bind("<FocusOut>", self._on_entry_focus_out)
         self.message_entry.bind("<Return>", self._on_enter)
         self.message_entry.bind("<Shift-Return>", lambda e: "break")
 
@@ -250,12 +254,25 @@ class ChatTutorPanel(ctk.CTkFrame):
         if context_text:
             self._add_message_to_ui("assistant", f"Contexto de estudio actualizado: '{context_text[:50]}...'", save_to_history=False)
 
+    def _on_entry_focus_in(self, event):
+        """Remove placeholder text on focus"""
+        current_text = self.message_entry.get("1.0", "end-1c").strip()
+        if current_text == self.placeholder_text:
+            self.message_entry.delete("1.0", "end")
+    
+    def _on_entry_focus_out(self, event):
+        """Add placeholder text if empty"""
+        current_text = self.message_entry.get("1.0", "end-1c").strip()
+        if not current_text:
+            self.message_entry.insert("1.0", self.placeholder_text)
+
     def _send_message(self, event=None):
         if self.is_generating:
             return "break"
 
         message_text = self.message_entry.get("1.0", "end-1c").strip()
-        if not message_text:
+        # Ignore placeholder text
+        if not message_text or message_text == self.placeholder_text:
             return "break"
 
         self.message_entry.delete("1.0", "end")
