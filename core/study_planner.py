@@ -1,347 +1,678 @@
 """
-MedStudy Pro - Retrospective Study Planner
-Based on Ali Abdaal's Spaced Repetition Spreadsheet methodology
-Focus on what you DON'T know rather than predicting the future
+MedStudy Pro - Study Planner Page
+Página funcional para crear y gestionar planes de estudio médico
 """
 
-import logging
+import customtkinter as ctk
+from typing import List, Dict, Optional
 import json
-import uuid
 from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional, Tuple
-from enum import Enum
-from dataclasses import dataclass
+import uuid
+import threading
+from tkinter import messagebox
 
-class ConfidenceLevel(Enum):
-    """Confidence levels for topics (color-coded like Ali's system)"""
-    RED = "red"           # Don't know at all
-    ORANGE = "orange"     # Know a little bit
-    YELLOW = "yellow"     # Know somewhat
-    GREEN = "green"       # Know well
-    BLUE = "blue"         # Know very well
+# Safe imports
+try:
+    from core.database import DatabaseManager
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
+    DatabaseManager = None
 
-class StudyPriority(Enum):
-    """Study priority based on confidence and time since last study"""
-    URGENT = "urgent"       # Red topics, or topics not studied in too long
-    HIGH = "high"          # Orange topics, or overdue yellow topics
-    MEDIUM = "medium"      # Yellow topics on schedule
-    LOW = "low"           # Green topics
-    OPTIONAL = "optional"  # Blue topics
+try:
+    from core.study_planner import RetrospectiveStudyPlanner, ConfidenceLevel, StudyPriority
+    PLANNER_AVAILABLE = True
+except ImportError:
+    PLANNER_AVAILABLE = False
+    RetrospectiveStudyPlanner = None
+    
+    # Fallback enums
+    class ConfidenceLevel:
+        RED = "red"
+        ORANGE = "orange"
+        YELLOW = "yellow"
+        GREEN = "green"
+        BLUE = "blue"
+    
+    class StudyPriority:
+        URGENT = "urgent"
+        HIGH = "high"
+        MEDIUM = "medium"
+        LOW = "low"
+        OPTIONAL = "optional"
 
-@dataclass
-class StudyTopic:
-    """Individual study topic with retrospective tracking"""
-    topic_id: str
-    name: str
-    specialty: str
-    confidence_level: ConfidenceLevel
-    last_studied: Optional[datetime]
-    study_count: int
-    time_spent_minutes: int
-    notes: str
-    created_at: datetime
-    updated_at: datetime
-
-@dataclass
-class StudySession:
-    """Record of a study session for retrospective analysis"""
-    session_id: str
-    topic_id: str
-    duration_minutes: int
-    confidence_before: ConfidenceLevel
-    confidence_after: ConfidenceLevel
-    notes: str
-    session_date: datetime
-
-class RetrospectiveStudyPlanner:
-    """
-    Study planner based on Ali Abdaal's retrospective methodology
+class StudyPlannerPage(ctk.CTkFrame):
+    """Página principal del planificador de estudio"""
     
-    Core principles:
-    1. Don't predict the future - focus on what you don't know NOW
-    2. Color-code topics by confidence level
-    3. Study topics with lowest confidence first
-    4. Track actual study sessions, not planned ones
-    5. Adjust priorities based on real data, not predictions
-    """
-    
-    def __init__(self, database):
-        self.database = database
-        self.logger = logging.getLogger('MedStudy.StudyPlanner')
+    def __init__(self, parent, config, db_manager):
+        super().__init__(parent)
+        self.config = config
+        self.db_manager = db_manager
         
-        # Initialize database tables if needed
-        self._ensure_tables()
+        # Colors
+        self.colors = {
+            "PRIMARY": "#1E3A8A",
+            "SUCCESS": "#10B981",
+            "WARNING": "#F59E0B",
+            "ERROR": "#EF4444",
+            "ACCENT": "#06B6D4",
+            "BG_LIGHT": "#F8FAFC",
+            "TEXT_DARK": "#1F2937",
+            "TEXT_MEDIUM": "#6B7280",
+            # Confidence colors
+            "RED": "#EF4444",
+            "ORANGE": "#F97316",
+            "YELLOW": "#EAB308",
+            "GREEN": "#10B981",
+            "BLUE": "#3B82F6"
+        }
         
-        self.logger.info("Retrospective Study Planner initialized")
-    
-    def _ensure_tables(self):
-        """Ensure study planner tables exist"""
-        try:
-            # Study topics table (enhanced from basic schema)
-            self.database.execute_update("""
-                CREATE TABLE IF NOT EXISTS study_topics (
-                    topic_id TEXT PRIMARY KEY,
-                    plan_id TEXT NOT NULL,
-                    name TEXT NOT NULL,
-                    specialty TEXT DEFAULT 'general',
-                    confidence_level TEXT DEFAULT 'red',
-                    last_studied TEXT,
-                    study_count INTEGER DEFAULT 0,
-                    time_spent_minutes INTEGER DEFAULT 0,
-                    notes TEXT DEFAULT '',
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    FOREIGN KEY (plan_id) REFERENCES study_plans (plan_id)
-                )
-            """)
-            
-            # Study session logs
-            self.database.execute_update("""
-                CREATE TABLE IF NOT EXISTS study_session_logs (
-                    session_id TEXT PRIMARY KEY,
-                    topic_id TEXT NOT NULL,
-                    duration_minutes INTEGER NOT NULL,
-                    confidence_before TEXT NOT NULL,
-                    confidence_after TEXT NOT NULL,
-                    session_notes TEXT DEFAULT '',
-                    session_date TEXT NOT NULL,
-                    FOREIGN KEY (topic_id) REFERENCES study_topics (topic_id)
-                )
-            """)
-            
-            # Create indexes for better performance
-            self.database.execute_update("""
-                CREATE INDEX IF NOT EXISTS idx_study_topics_confidence ON study_topics (confidence_level)
-            """)
-            
-            self.database.execute_update("""
-                CREATE INDEX IF NOT EXISTS idx_study_topics_last_studied ON study_topics (last_studied)
-            """)
-            
-        except Exception as e:
-            self.logger.error(f"Failed to ensure study planner tables: {e}")
-    
-    def create_study_plan(self, title: str, specialty: str, 
-                         topics: List[str]) -> str:
-        """Create a new study plan with initial topics"""
+        # Initialize planner
+        self.planner = None
+        if PLANNER_AVAILABLE and db_manager:
+            try:
+                self.planner = RetrospectiveStudyPlanner(db_manager.database)
+            except:
+                pass
         
-        plan_id = f"plan_{uuid.uuid4().hex[:12]}"
+        # State
+        self.current_plan_id = None
+        self.active_plans = []
+        self.selected_topics = []
         
-        try:
-            # Create study plan
-            self.database.execute_update("""
-                INSERT INTO study_plans 
-                (plan_id, title, specialty, topics, confidence_levels, last_studied, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                plan_id,
-                title,
-                specialty,
-                json.dumps(topics),
-                json.dumps({}),  # Will be populated as topics are studied
-                json.dumps({}),  # Will be populated as topics are studied
-                datetime.now().isoformat(),
-                datetime.now().isoformat()
-            ))
-            
-            # Create individual topic entries (all start as RED - unknown)
-            for topic_name in topics:
-                self.add_topic_to_plan(plan_id, topic_name, specialty)
-            
-            self.logger.info(f"Created study plan {plan_id}: {title} with {len(topics)} topics")
-            return plan_id
-            
-        except Exception as e:
-            self.logger.error(f"Failed to create study plan: {e}")
-            raise
-    
-    def add_topic_to_plan(self, plan_id: str, topic_name: str, 
-                         specialty: str = "general") -> str:
-        """Add a new topic to an existing study plan"""
+        # UI Setup
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
         
-        topic_id = f"topic_{uuid.uuid4().hex[:8]}"
+        self._create_ui()
+        self._load_existing_plans()
         
-        try:
-            self.database.execute_update("""
-                INSERT INTO study_topics 
-                (topic_id, plan_id, name, specialty, confidence_level, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                topic_id,
-                plan_id,
-                topic_name,
-                specialty,
-                ConfidenceLevel.RED.value,  # Always start as RED (don't know)
-                datetime.now().isoformat(),
-                datetime.now().isoformat()
-            ))
-            
-            self.logger.info(f"Added topic {topic_name} to plan {plan_id}")
-            return topic_id
-            
-        except Exception as e:
-            self.logger.error(f"Failed to add topic: {e}")
-            raise
-    
-    def get_study_priorities_today(self, plan_id: str = None) -> List[Dict[str, Any]]:
-        """
-        Get today's study priorities based on Ali Abdaal's methodology
+    def _create_ui(self):
+        """Crea la interfaz completa"""
+        # Header
+        self._create_header()
         
-        Priority logic:
-        1. RED topics (don't know at all) - URGENT
-        2. Topics not studied in 7+ days - HIGH
-        3. ORANGE topics (know a little) - HIGH  
-        4. YELLOW topics not studied in 3+ days - MEDIUM
-        5. GREEN topics not studied in 7+ days - LOW
-        6. BLUE topics - OPTIONAL
-        """
+        # Main content area with two columns
+        content_frame = ctk.CTkFrame(self)
+        content_frame.grid(row=1, column=0, sticky="nsew", padx=20, pady=10)
+        content_frame.grid_columnconfigure(0, weight=2)  # Left column wider
+        content_frame.grid_columnconfigure(1, weight=1)  # Right column narrower
+        content_frame.grid_rowconfigure(0, weight=1)
         
-        try:
-            # Base query for topics
-            where_clause = "WHERE 1=1"
-            params = []
+        # Left: Plan creation and topics
+        left_frame = ctk.CTkFrame(content_frame)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        left_frame.grid_columnconfigure(0, weight=1)
+        left_frame.grid_rowconfigure(1, weight=1)
+        
+        self._create_plan_creator(left_frame)
+        self._create_topics_manager(left_frame)
+        
+        # Right: Active plans and progress
+        right_frame = ctk.CTkFrame(content_frame)
+        right_frame.grid(row=0, column=1, sticky="nsew")
+        right_frame.grid_columnconfigure(0, weight=1)
+        right_frame.grid_rowconfigure(0, weight=1)
+        
+        self._create_plans_list(right_frame)
+        
+    def _create_header(self):
+        """Crea el header de la página"""
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.grid(row=0, column=0, sticky="ew", padx=20, pady=(20, 10))
+        
+        title = ctk.CTkLabel(
+            header,
+            text="📋 Planificador de Estudio Retrospectivo",
+            font=ctk.CTkFont(size=24, weight="bold"),
+            text_color=self.colors["TEXT_DARK"]
+        )
+        title.pack(side="left")
+        
+        # Quick stats
+        self.stats_label = ctk.CTkLabel(
+            header,
+            text="",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        )
+        self.stats_label.pack(side="right", padx=20)
+        
+    def _create_plan_creator(self, parent):
+        """Crea el formulario para nuevo plan"""
+        creator_frame = ctk.CTkFrame(parent)
+        creator_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        
+        # Title
+        title_label = ctk.CTkLabel(
+            creator_frame,
+            text="Crear Nuevo Plan de Estudio",
+            font=ctk.CTkFont(size=18, weight="bold"),
+            text_color=self.colors["TEXT_DARK"]
+        )
+        title_label.pack(anchor="w", padx=15, pady=(15, 10))
+        
+        # Form fields
+        form_frame = ctk.CTkFrame(creator_frame, fg_color="transparent")
+        form_frame.pack(fill="x", padx=15, pady=(0, 15))
+        
+        # Plan title
+        ctk.CTkLabel(
+            form_frame,
+            text="Título del Plan:",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        ).pack(anchor="w", pady=(5, 2))
+        
+        self.plan_title_entry = ctk.CTkEntry(
+            form_frame,
+            placeholder_text="Ej: Preparación Examen Cardiología",
+            height=35
+        )
+        self.plan_title_entry.pack(fill="x", pady=(0, 10))
+        
+        # Two columns for specialty and deadline
+        cols_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        cols_frame.pack(fill="x", pady=(0, 10))
+        cols_frame.grid_columnconfigure(0, weight=1)
+        cols_frame.grid_columnconfigure(1, weight=1)
+        
+        # Specialty
+        spec_frame = ctk.CTkFrame(cols_frame, fg_color="transparent")
+        spec_frame.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+        
+        ctk.CTkLabel(
+            spec_frame,
+            text="Especialidad:",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        ).pack(anchor="w", pady=(5, 2))
+        
+        self.specialty_var = ctk.StringVar(value="medicina_interna")
+        self.specialty_menu = ctk.CTkOptionMenu(
+            spec_frame,
+            values=["medicina_interna", "cardiologia", "reumatologia", "nefrologia", 
+                    "endocrinologia", "neurologia", "gastroenterologia", "general"],
+            variable=self.specialty_var,
+            height=35
+        )
+        self.specialty_menu.pack(fill="x")
+        
+        # Deadline
+        deadline_frame = ctk.CTkFrame(cols_frame, fg_color="transparent")
+        deadline_frame.grid(row=0, column=1, sticky="ew", padx=(5, 0))
+        
+        ctk.CTkLabel(
+            deadline_frame,
+            text="Plazo (días):",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        ).pack(anchor="w", pady=(5, 2))
+        
+        self.deadline_var = ctk.StringVar(value="30")
+        self.deadline_menu = ctk.CTkOptionMenu(
+            deadline_frame,
+            values=["7", "14", "30", "60", "90"],
+            variable=self.deadline_var,
+            height=35
+        )
+        self.deadline_menu.pack(fill="x")
+        
+        # Profundidad
+        ctk.CTkLabel(
+            form_frame,
+            text="Nivel de Profundidad:",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        ).pack(anchor="w", pady=(5, 2))
+        
+        self.depth_var = ctk.StringVar(value="intermedio")
+        self.depth_selector = ctk.CTkSegmentedButton(
+            form_frame,
+            values=["básico", "intermedio", "avanzado"],
+            variable=self.depth_var,
+            height=35
+        )
+        self.depth_selector.pack(fill="x", pady=(0, 15))
+        
+        # Create button
+        self.create_btn = ctk.CTkButton(
+            form_frame,
+            text="Crear Plan",
+            command=self._create_new_plan,
+            height=40,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color=self.colors["PRIMARY"]
+        )
+        self.create_btn.pack(fill="x")
+        
+    def _create_topics_manager(self, parent):
+        """Crea el gestor de temas"""
+        topics_frame = ctk.CTkFrame(parent)
+        topics_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        topics_frame.grid_columnconfigure(0, weight=1)
+        topics_frame.grid_rowconfigure(1, weight=1)
+        
+        # Header
+        header_frame = ctk.CTkFrame(topics_frame, fg_color="transparent")
+        header_frame.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 10))
+        header_frame.grid_columnconfigure(0, weight=1)
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="Temas de Estudio",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=self.colors["TEXT_DARK"]
+        ).grid(row=0, column=0, sticky="w")
+        
+        # Topic input
+        input_frame = ctk.CTkFrame(header_frame, fg_color="transparent")
+        input_frame.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        input_frame.grid_columnconfigure(0, weight=1)
+        
+        self.topic_entry = ctk.CTkEntry(
+            input_frame,
+            placeholder_text="Agregar tema (Ej: Insuficiencia Cardíaca)",
+            height=35
+        )
+        self.topic_entry.grid(row=0, column=0, sticky="ew", padx=(0, 5))
+        self.topic_entry.bind("<Return>", lambda e: self._add_topic())
+        
+        add_btn = ctk.CTkButton(
+            input_frame,
+            text="+",
+            command=self._add_topic,
+            width=35,
+            height=35,
+            font=ctk.CTkFont(size=18),
+            fg_color=self.colors["SUCCESS"]
+        )
+        add_btn.grid(row=0, column=1)
+        
+        # Topics list
+        self.topics_scroll = ctk.CTkScrollableFrame(topics_frame)
+        self.topics_scroll.grid(row=1, column=0, sticky="nsew", padx=15, pady=(10, 15))
+        self.topics_scroll.grid_columnconfigure(0, weight=1)
+        
+        # Empty state
+        self.empty_topics_label = ctk.CTkLabel(
+            self.topics_scroll,
+            text="No hay temas agregados.\nComienza agregando temas para tu plan de estudio.",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        )
+        self.empty_topics_label.grid(row=0, column=0, pady=20)
+        
+    def _create_plans_list(self, parent):
+        """Crea la lista de planes activos"""
+        list_frame = ctk.CTkFrame(parent)
+        list_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        
+        # Header
+        header_frame = ctk.CTkFrame(list_frame, fg_color="transparent")
+        header_frame.pack(fill="x", padx=15, pady=(15, 10))
+        
+        ctk.CTkLabel(
+            header_frame,
+            text="Planes Activos",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            text_color=self.colors["TEXT_DARK"]
+        ).pack(side="left")
+        
+        # Refresh button
+        refresh_btn = ctk.CTkButton(
+            header_frame,
+            text="🔄",
+            command=self._load_existing_plans,
+            width=30,
+            height=30,
+            fg_color=self.colors["ACCENT"]
+        )
+        refresh_btn.pack(side="right")
+        
+        # Plans scroll
+        self.plans_scroll = ctk.CTkScrollableFrame(list_frame)
+        self.plans_scroll.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        
+        # Empty state
+        self.empty_plans_label = ctk.CTkLabel(
+            self.plans_scroll,
+            text="No hay planes activos.\nCrea tu primer plan de estudio.",
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        )
+        self.empty_plans_label.pack(pady=20)
+        
+    def _add_topic(self):
+        """Agrega un tema a la lista"""
+        topic = self.topic_entry.get().strip()
+        if not topic:
+            return
             
-            if plan_id:
-                where_clause += " AND plan_id = ?"
-                params.append(plan_id)
+        if topic in self.selected_topics:
+            messagebox.showwarning("Duplicado", "Este tema ya está en la lista.")
+            return
             
-            topics = self.database.execute_query(f"""
-                SELECT * FROM study_topics {where_clause}
-                ORDER BY confidence_level, last_studied ASC
-            """, tuple(params))
+        self.selected_topics.append(topic)
+        self.topic_entry.delete(0, 'end')
+        
+        # Hide empty state
+        self.empty_topics_label.grid_forget()
+        
+        # Create topic widget
+        self._create_topic_widget(topic, len(self.selected_topics) - 1)
+        
+    def _create_topic_widget(self, topic: str, index: int):
+        """Crea un widget para mostrar un tema"""
+        topic_frame = ctk.CTkFrame(self.topics_scroll)
+        topic_frame.grid(row=index, column=0, sticky="ew", pady=2)
+        topic_frame.grid_columnconfigure(0, weight=1)
+        
+        # Topic name
+        topic_label = ctk.CTkLabel(
+            topic_frame,
+            text=topic,
+            font=ctk.CTkFont(size=13),
+            anchor="w"
+        )
+        topic_label.grid(row=0, column=0, sticky="ew", padx=10, pady=8)
+        
+        # Delete button
+        delete_btn = ctk.CTkButton(
+            topic_frame,
+            text="✕",
+            command=lambda t=topic: self._remove_topic(t),
+            width=25,
+            height=25,
+            fg_color=self.colors["ERROR"],
+            hover_color="#DC2626"
+        )
+        delete_btn.grid(row=0, column=1, padx=(5, 10))
+        
+    def _remove_topic(self, topic: str):
+        """Elimina un tema de la lista"""
+        if topic in self.selected_topics:
+            self.selected_topics.remove(topic)
+            self._refresh_topics_list()
             
-            # Calculate priorities for each topic
-            prioritized_topics = []
-            today = datetime.now()
+    def _refresh_topics_list(self):
+        """Refresca la lista de temas"""
+        # Clear all widgets
+        for widget in self.topics_scroll.winfo_children():
+            widget.destroy()
             
-            for topic in topics:
-                priority_info = self._calculate_topic_priority(topic, today)
+        if not self.selected_topics:
+            self.empty_topics_label = ctk.CTkLabel(
+                self.topics_scroll,
+                text="No hay temas agregados.\nComienza agregando temas para tu plan de estudio.",
+                font=ctk.CTkFont(size=12),
+                text_color=self.colors["TEXT_MEDIUM"]
+            )
+            self.empty_topics_label.grid(row=0, column=0, pady=20)
+        else:
+            for i, topic in enumerate(self.selected_topics):
+                self._create_topic_widget(topic, i)
                 
-                topic_data = {
-                    'topic_id': topic['topic_id'],
-                    'name': topic['name'],
-                    'specialty': topic['specialty'],
-                    'confidence_level': topic['confidence_level'],
-                    'last_studied': topic['last_studied'],
-                    'study_count': topic['study_count'],
-                    'time_spent_minutes': topic['time_spent_minutes'],
-                    'priority': priority_info['priority'],
-                    'priority_reason': priority_info['reason'],
-                    'days_since_study': priority_info['days_since_study'],
-                    'recommended_duration': priority_info['recommended_duration']
+    def _create_new_plan(self):
+        """Crea un nuevo plan de estudio"""
+        # Validate inputs
+        title = self.plan_title_entry.get().strip()
+        if not title:
+            messagebox.showerror("Error", "Por favor ingresa un título para el plan.")
+            return
+            
+        if not self.selected_topics:
+            messagebox.showerror("Error", "Por favor agrega al menos un tema de estudio.")
+            return
+            
+        # Create plan
+        try:
+            if self.planner:
+                plan_id = self.planner.create_study_plan(
+                    title=title,
+                    specialty=self.specialty_var.get(),
+                    topics=self.selected_topics
+                )
+                
+                # Store additional metadata
+                if self.db_manager:
+                    self.db_manager.database.set_preference(
+                        "study_plans",
+                        f"{plan_id}_metadata",
+                        {
+                            "deadline_days": int(self.deadline_var.get()),
+                            "depth_level": self.depth_var.get(),
+                            "created_at": datetime.now().isoformat()
+                        }
+                    )
+                
+                messagebox.showinfo("Éxito", f"Plan '{title}' creado exitosamente!")
+                
+                # Clear form
+                self.plan_title_entry.delete(0, 'end')
+                self.selected_topics = []
+                self._refresh_topics_list()
+                
+                # Reload plans
+                self._load_existing_plans()
+                
+            else:
+                # Fallback without database
+                plan_data = {
+                    "id": f"plan_{uuid.uuid4().hex[:12]}",
+                    "title": title,
+                    "specialty": self.specialty_var.get(),
+                    "topics": self.selected_topics,
+                    "deadline_days": int(self.deadline_var.get()),
+                    "depth_level": self.depth_var.get(),
+                    "created_at": datetime.now().isoformat()
                 }
                 
-                prioritized_topics.append(topic_data)
-            
-            # Sort by priority (URGENT first, then HIGH, etc.)
-            priority_order = {
-                StudyPriority.URGENT.value: 0,
-                StudyPriority.HIGH.value: 1,
-                StudyPriority.MEDIUM.value: 2,
-                StudyPriority.LOW.value: 3,
-                StudyPriority.OPTIONAL.value: 4
-            }
-            
-            prioritized_topics.sort(key=lambda x: priority_order.get(x['priority'], 5))
-            
-            self.logger.info(f"Generated study priorities: {len(prioritized_topics)} topics")
-            return prioritized_topics
-            
+                messagebox.showinfo("Demo", f"Plan '{title}' creado (modo demo sin base de datos)")
+                
         except Exception as e:
-            self.logger.error(f"Failed to get study priorities: {e}")
-            return []
-    
-    def _calculate_topic_priority(self, topic: Dict[str, Any], 
-                                today: datetime) -> Dict[str, Any]:
-        """Calculate priority for a single topic based on Ali's methodology"""
-        
-        confidence = ConfidenceLevel(topic['confidence_level'])
-        last_studied_str = topic['last_studied']
-        
-        # Calculate days since last study
-        if last_studied_str:
-            last_studied = datetime.fromisoformat(last_studied_str)
-            days_since_study = (today - last_studied).days
+            messagebox.showerror("Error", f"Error creando plan: {str(e)}")
+            
+    def _load_existing_plans(self):
+        """Carga los planes existentes"""
+        # Clear current plans
+        for widget in self.plans_scroll.winfo_children():
+            widget.destroy()
+            
+        if self.db_manager:
+            try:
+                # Get all plans
+                plans = self.db_manager.database.execute_query(
+                    "SELECT * FROM study_plans ORDER BY created_at DESC"
+                )
+                
+                if plans:
+                    self.empty_plans_label.pack_forget()
+                    for i, plan in enumerate(plans):
+                        self._create_plan_widget(plan, i)
+                else:
+                    self.empty_plans_label.pack(pady=20)
+                    
+                # Update stats
+                self._update_stats(len(plans))
+                
+            except Exception as e:
+                print(f"Error loading plans: {e}")
+                self.empty_plans_label.pack(pady=20)
         else:
-            days_since_study = 999  # Never studied
+            # Demo mode
+            self.empty_plans_label.pack(pady=20)
+            
+    def _create_plan_widget(self, plan_data: Dict, index: int):
+        """Crea un widget para mostrar un plan"""
+        plan_frame = ctk.CTkFrame(self.plans_scroll)
+        plan_frame.pack(fill="x", pady=5)
         
-        # Ali Abdaal's priority logic
-        if confidence == ConfidenceLevel.RED:
-            # RED topics are always URGENT
-            priority = StudyPriority.URGENT
-            reason = "No conoces este tema - prioridad máxima"
-            duration = 60  # 1 hour for unknown topics
-            
-        elif days_since_study >= 7:
-            # Any topic not studied in a week becomes HIGH priority
-            priority = StudyPriority.HIGH
-            reason = f"No estudiado en {days_since_study} días"
-            duration = 45
-            
-        elif confidence == ConfidenceLevel.ORANGE:
-            # ORANGE topics are HIGH priority (know a little)
-            priority = StudyPriority.HIGH
-            reason = "Conocimiento básico - necesita refuerzo"
-            duration = 45
-            
-        elif confidence == ConfidenceLevel.YELLOW and days_since_study >= 3:
-            # YELLOW topics become MEDIUM priority after 3 days
-            priority = StudyPriority.MEDIUM
-            reason = f"Conocimiento intermedio - repasar cada 3 días"
-            duration = 30
-            
-        elif confidence == ConfidenceLevel.GREEN and days_since_study >= 7:
-            # GREEN topics become LOW priority after a week
-            priority = StudyPriority.LOW
-            reason = "Buen conocimiento - repaso semanal"
-            duration = 20
-            
-        elif confidence == ConfidenceLevel.BLUE:
-            # BLUE topics are OPTIONAL (know very well)
-            priority = StudyPriority.OPTIONAL
-            reason = "Excelente conocimiento - repaso opcional"
-            duration = 15
-            
-        else:
-            # Default case
-            priority = StudyPriority.MEDIUM
-            reason = "Repaso de rutina"
-            duration = 30
+        # Header
+        header_frame = ctk.CTkFrame(plan_frame, fg_color="transparent")
+        header_frame.pack(fill="x", padx=15, pady=(10, 5))
         
-        return {
-            'priority': priority.value,
-            'reason': reason,
-            'days_since_study': days_since_study,
-            'recommended_duration': duration
-        }
-    
-    def get_study_plan_overview(self, plan_id: str) -> Dict[str, Any]:
-        """Get overview of study plan progress (Ali's spreadsheet view)"""
+        title_label = ctk.CTkLabel(
+            header_frame,
+            text=plan_data['title'],
+            font=ctk.CTkFont(size=14, weight="bold"),
+            anchor="w"
+        )
+        title_label.pack(side="left")
+        
+        # Specialty badge
+        specialty_label = ctk.CTkLabel(
+            header_frame,
+            text=plan_data['specialty'],
+            font=ctk.CTkFont(size=10),
+            fg_color=self.colors["ACCENT"],
+            text_color="white",
+            corner_radius=10
+        )
+        specialty_label.pack(side="right", padx=5)
+        
+        # Topics count
+        try:
+            topics = json.loads(plan_data['topics'])
+            topics_text = f"{len(topics)} temas"
+        except:
+            topics_text = "Sin temas"
+            
+        info_label = ctk.CTkLabel(
+            plan_frame,
+            text=topics_text,
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"],
+            anchor="w"
+        )
+        info_label.pack(fill="x", padx=15, pady=(0, 5))
+        
+        # Actions
+        actions_frame = ctk.CTkFrame(plan_frame, fg_color="transparent")
+        actions_frame.pack(fill="x", padx=15, pady=(5, 10))
+        
+        view_btn = ctk.CTkButton(
+            actions_frame,
+            text="Ver Detalles",
+            command=lambda p=plan_data: self._view_plan_details(p),
+            height=30,
+            fg_color=self.colors["PRIMARY"]
+        )
+        view_btn.pack(side="left", padx=(0, 5))
+        
+        study_btn = ctk.CTkButton(
+            actions_frame,
+            text="Estudiar Ahora",
+            command=lambda p=plan_data: self._start_study_session(p),
+            height=30,
+            fg_color=self.colors["SUCCESS"]
+        )
+        study_btn.pack(side="left")
+        
+    def _view_plan_details(self, plan_data: Dict):
+        """Muestra los detalles de un plan"""
+        # Create details window
+        details_window = ctk.CTkToplevel(self)
+        details_window.title(f"Detalles: {plan_data['title']}")
+        details_window.geometry("800x600")
+        
+        # Content
+        content_frame = ctk.CTkScrollableFrame(details_window)
+        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title
+        ctk.CTkLabel(
+            content_frame,
+            text=plan_data['title'],
+            font=ctk.CTkFont(size=20, weight="bold")
+        ).pack(anchor="w", pady=(0, 10))
+        
+        # Topics with confidence levels
+        ctk.CTkLabel(
+            content_frame,
+            text="Temas y Niveles de Confianza:",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w", pady=(20, 10))
         
         try:
-            # Get plan basic info
-            plan = self.database.execute_query(
-                "SELECT * FROM study_plans WHERE plan_id = ?",
-                (plan_id,)
-            )
+            topics = json.loads(plan_data['topics'])
             
-            if not plan:
-                return {}
-            
-            plan = plan[0]
-            
-            # For now, return basic info
-            return {
-                'plan_id': plan_id,
-                'title': plan['title'],
-                'specialty': plan['specialty'],
-                'created_at': plan['created_at'],
-                'updated_at': plan['updated_at']
-            }
-            
+            # Get confidence levels if available
+            if self.db_manager:
+                topic_details = self.db_manager.database.execute_query(
+                    """SELECT name, confidence_level, last_studied 
+                       FROM study_topics 
+                       WHERE plan_id = ?""",
+                    (plan_data['plan_id'],)
+                )
+                
+                for topic_data in topic_details:
+                    self._create_topic_detail_widget(content_frame, topic_data)
+            else:
+                # Demo mode
+                for topic in topics:
+                    demo_data = {
+                        'name': topic,
+                        'confidence_level': 'red',
+                        'last_studied': None
+                    }
+                    self._create_topic_detail_widget(content_frame, demo_data)
+                    
         except Exception as e:
-            self.logger.error(f"Failed to get study plan overview: {e}")
-            return {}
-
-# Export main classes
-__all__ = ['RetrospectiveStudyPlanner', 'StudyTopic', 'StudySession', 'ConfidenceLevel', 'StudyPriority']
+            print(f"Error showing topics: {e}")
+            
+    def _create_topic_detail_widget(self, parent, topic_data: Dict):
+        """Crea widget para mostrar detalle de un tema"""
+        topic_frame = ctk.CTkFrame(parent)
+        topic_frame.pack(fill="x", pady=5)
+        topic_frame.grid_columnconfigure(0, weight=1)
+        
+        # Topic name
+        name_label = ctk.CTkLabel(
+            topic_frame,
+            text=topic_data['name'],
+            font=ctk.CTkFont(size=14),
+            anchor="w"
+        )
+        name_label.grid(row=0, column=0, sticky="w", padx=15, pady=10)
+        
+        # Confidence indicator
+        confidence = topic_data.get('confidence_level', 'red')
+        color = self.colors.get(confidence.upper(), self.colors["RED"])
+        
+        confidence_frame = ctk.CTkFrame(topic_frame, fg_color=color, width=20, height=20)
+        confidence_frame.grid(row=0, column=1, padx=10)
+        
+        # Last studied
+        last_studied = topic_data.get('last_studied')
+        if last_studied:
+            try:
+                date = datetime.fromisoformat(last_studied)
+                days_ago = (datetime.now() - date).days
+                studied_text = f"Estudiado hace {days_ago} días"
+            except:
+                studied_text = "Nunca estudiado"
+        else:
+            studied_text = "Nunca estudiado"
+            
+        studied_label = ctk.CTkLabel(
+            topic_frame,
+            text=studied_text,
+            font=ctk.CTkFont(size=12),
+            text_color=self.colors["TEXT_MEDIUM"]
+        )
+        studied_label.grid(row=0, column=2, sticky="e", padx=15)
+        
+    def _start_study_session(self, plan_data: Dict):
+        """Inicia una sesión de estudio"""
+        messagebox.showinfo(
+            "Sesión de Estudio",
+            f"Iniciando sesión de estudio para:\n{plan_data['title']}\n\n" +
+            "Esta función se integrará con el gestor de sesiones."
+        )
+        
+    def _update_stats(self, plan_count: int):
+        """Actualiza las estadísticas mostradas"""
+        self.stats_label.configure(
+            text=f"📊 {plan_count} planes activos"
+        )
