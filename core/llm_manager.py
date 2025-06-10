@@ -514,5 +514,5 @@ class LLMManager:
         """Obtiene prompt del sistema según tipo de chat"""
         prompts = {
             "general": self.medical_prompts["system_base"],
-            "case_study": self.medical_prompts["case_study"],
+            "case_study": self.medical_prompts["case_study"]}
             

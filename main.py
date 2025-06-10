@@ -23,16 +23,39 @@ def safe_import():
     """Import modules with proper error handling"""
     try:
         from app.config import config
-        from core.utils import run_system_diagnostic, SystemChecker
-        from core.database import initialize_database
-        return config, run_system_diagnostic, SystemChecker, initialize_database
+        config_available = True
     except ImportError as e:
-        print(f"❌ Import Error: {e}")
+        print(f"❌ Config Import Error: {e}")
+        config = None
+        config_available = False
+    
+    try:
+        from core.utils import run_system_diagnostic, SystemChecker
+        utils_available = True
+    except ImportError as e:
+        print(f"❌ Utils Import Error: {e}")
+        run_system_diagnostic = None
+        SystemChecker = None
+        utils_available = False
+    
+    try:
+        from core.database import initialize_database
+        database_available = True
+    except ImportError as e:
+        print(f"❌ Database Import Error: {e}")
+        initialize_database = None
+        database_available = False
+    
+    # Check if we have minimum required components
+    if not config_available or not utils_available or not database_available:
+        print("\n❌ Critical import failures detected:")
         print("Make sure you're running from the project root directory")
         print("and all dependencies are installed:")
         print("  1. Run: python setup.py")
         print("  2. Or: pip install -r requirements.txt")
         return None, None, None, None
+    
+    return config, run_system_diagnostic, SystemChecker, initialize_database
 
 class MedStudyProLauncher:
     """Main launcher for MedStudy Pro application - Enhanced Version"""
@@ -152,8 +175,13 @@ class MedStudyProLauncher:
             if not self.config:
                 raise RuntimeError("Configuration not available")
             
-            db_url = self.config.get_database_url()
-            db_path = db_url.replace('sqlite:///', '')
+            # Safe database URL extraction
+            try:
+                db_url = self.config.get_database_url()
+                db_path = db_url.replace('sqlite:///', '')
+            except Exception:
+                # Fallback database path
+                db_path = 'data/medstudy.db'
             
             if self.logger:
                 self.logger.info(f"Initializing database at {db_path}")
@@ -163,12 +191,16 @@ class MedStudyProLauncher:
             db = self.initialize_database(db_path)
             
             # Test database connection
-            db_info = db.get_database_info()
+            try:
+                db_info = db.get_database_info()
+                table_count = db_info.get('table_count', 0)
+            except Exception:
+                table_count = 0
             
             if self.logger:
-                self.logger.info(f"Database initialized: {db_info.get('table_count', 0)} tables")
+                self.logger.info(f"Database initialized: {table_count} tables")
             else:
-                print(f"✅ Database ready: {db_info.get('table_count', 0)} tables")
+                print(f"✅ Database ready: {table_count} tables")
             
             return db
             
@@ -245,28 +277,40 @@ class MedStudyProLauncher:
         
         try:
             # Ollama config
-            ollama_config = self.config.get_ollama_config()
-            print(f"🤖 AI Configuration:")
-            print(f"   Host: {ollama_config.get('host', 'unknown')}")
-            print(f"   Model: {ollama_config.get('model', 'unknown')}")
-            print(f"   Timeout: {ollama_config.get('timeout', 'unknown')}s")
+            try:
+                ollama_config = self.config.get_ollama_config()
+                print(f"🤖 AI Configuration:")
+                print(f"   Host: {ollama_config.get('host', 'unknown')}")
+                print(f"   Model: {ollama_config.get('model', 'unknown')}")
+                print(f"   Timeout: {ollama_config.get('timeout', 'unknown')}s")
+            except Exception:
+                print(f"🤖 AI Configuration: Not available")
             
             # Window config
-            window_config = self.config.get_window_config()
-            print(f"🖥️  Window Configuration:")
-            print(f"   Size: {window_config.get('width', 'unknown')}x{window_config.get('height', 'unknown')}")
-            print(f"   Title: {window_config.get('title', 'unknown')}")
+            try:
+                window_config = self.config.get_window_config()
+                print(f"🖥️  Window Configuration:")
+                print(f"   Size: {window_config.get('width', 'unknown')}x{window_config.get('height', 'unknown')}")
+                print(f"   Title: {window_config.get('title', 'unknown')}")
+            except Exception:
+                print(f"🖥️  Window Configuration: Not available")
             
             # Study config
-            study_config = self.config.get_study_config()
-            print(f"📚 Study Configuration:")
-            print(f"   Session Duration: {study_config.get('session_duration', 'unknown')} minutes")
-            print(f"   Active Recall: Every {study_config.get('active_recall_interval', 'unknown')} minutes")
-            print(f"   Quiz Questions: {study_config.get('quiz_questions', 'unknown')} per session")
+            try:
+                study_config = self.config.get_study_config()
+                print(f"📚 Study Configuration:")
+                print(f"   Session Duration: {study_config.get('session_duration', 'unknown')} minutes")
+                print(f"   Active Recall: Every {study_config.get('active_recall_interval', 'unknown')} minutes")
+                print(f"   Quiz Questions: {study_config.get('quiz_questions', 'unknown')} per session")
+            except Exception:
+                print(f"📚 Study Configuration: Not available")
             
             # Database info
-            db_url = self.config.get_database_url()
-            print(f"💾 Database: {db_url}")
+            try:
+                db_url = self.config.get_database_url()
+                print(f"💾 Database: {db_url}")
+            except Exception:
+                print(f"💾 Database: Configuration not available")
             
         except Exception as e:
             print(f"❌ Error reading configuration: {e}")
@@ -411,3 +455,4 @@ For more information and documentation:
 
 if __name__ == "__main__":
     main()
+        

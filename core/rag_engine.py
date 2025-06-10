@@ -538,3 +538,252 @@ class MedicalRAGEngine:
                     'distance': results['distances'][0][i],
                     'metadata': results['metadatas'][0][i],
                     'relevance_score': 1 - results['distances'][0][i]  # Convert distance to similarity
+                }
+                formatted_results.append(result)
+            
+            self.logger.info(f"Found {len(formatted_results)} relevant chunks")
+            return formatted_results
+            
+        except Exception as e:
+            self.logger.error(f"Search failed: {e}")
+            return []
+    
+    def _fallback_search(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        """Fallback search using simple text matching"""
+        try:
+            # Simple database search if vector search not available
+            results = self.database.execute_query("""
+                SELECT document_id, title, pages 
+                FROM documents 
+                WHERE title LIKE ? OR document_id LIKE ?
+                LIMIT ?
+            """, (f"%{query}%", f"%{query}%", top_k))
+            
+            formatted_results = []
+            for result in results:
+                formatted_results.append({
+                    'chunk_id': f"{result['document_id']}_fallback",
+                    'text': f"Document: {result['title']} ({result['pages']} pages)",
+                    'distance': 0.5,  # Default distance
+                    'metadata': {'document_title': result['title']},
+                    'relevance_score': 0.5
+                })
+            
+            return formatted_results
+            
+        except Exception as e:
+            self.logger.error(f"Fallback search failed: {e}")
+            return []
+    
+    @PerformanceUtils.measure_time
+    def generate_study_content(self, topic: str, duration_minutes: int = 45, 
+                             difficulty: str = 'intermediate') -> Dict[str, Any]:
+        """Generate study content for a specific topic"""
+        
+        if not self.ollama_host:
+            return self._generate_fallback_content(topic, duration_minutes)
+        
+        self.logger.info(f"Generating study content for: {topic} ({duration_minutes} min)")
+        
+        # Search for relevant content
+        search_results = self.search_documents(topic, top_k=8)
+        
+        if not search_results:
+            self.logger.warning(f"No relevant content found for topic: {topic}")
+            return self._generate_fallback_content(topic, duration_minutes)
+        
+        # Prepare context from search results
+        context_chunks = []
+        for result in search_results[:5]:  # Use top 5 results
+            context_chunks.append(result['text'])
+        
+        context = "\n\n".join(context_chunks)
+        
+        # Generate content using Ollama
+        try:
+            content = self._call_ollama_for_content(topic, context, duration_minutes, difficulty)
+            
+            # Calculate actual reading time
+            estimated_time = DataUtils.calculate_reading_time(content)
+            
+            return {
+                'topic': topic,
+                'content': content,
+                'estimated_reading_time': estimated_time,
+                'target_duration': duration_minutes,
+                'difficulty': difficulty,
+                'sources_used': len(search_results),
+                'generated_at': datetime.now().isoformat(),
+                'source_chunks': [r['chunk_id'] for r in search_results[:5]]
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Content generation failed: {e}")
+            return self._generate_fallback_content(topic, duration_minutes)
+    
+    def _call_ollama_for_content(self, topic: str, context: str, duration: int, difficulty: str) -> str:
+        """Call Ollama to generate study content"""
+        
+        # Create medical education prompt
+        prompt = f"""Como especialista en medicina interna y reumatología, crea contenido de estudio de alta calidad sobre: {topic}
+
+CONTEXTO DISPONIBLE:
+{context}
+
+REQUISITOS:
+- Duración objetivo: {duration} minutos de lectura
+- Nivel de dificultad: {difficulty}
+- Enfoque médico: medicina interna y reumatología
+- Estructura didáctica con Active Recall integrado
+
+FORMATO REQUERIDO:
+1. Introducción clara del tema
+2. Conceptos fundamentales
+3. Fisiopatología (si aplica)
+4. Manifestaciones clínicas
+5. Diagnóstico y estudios
+6. Tratamiento y manejo
+7. Casos clínicos breves
+8. Puntos clave para recordar
+
+ESTILO:
+- Texto fluido y académico
+- Terminología médica precisa
+- Ejemplos clínicos relevantes
+- Conexiones con conocimiento previo
+- Preguntas reflexivas integradas
+
+Genera contenido educativo estructurado y de alta calidad médica:"""
+
+        try:
+            response = requests.post(
+                f"{self.ollama_host}/api/generate",
+                json={
+                    "model": self.ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                        "max_tokens": 2000
+                    }
+                },
+                timeout=self.ollama_timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get('response', '')
+            else:
+                raise RuntimeError(f"Ollama API error: {response.status_code}")
+                
+        except Exception as e:
+            self.logger.error(f"Ollama API call failed: {e}")
+            raise
+    
+    def _generate_fallback_content(self, topic: str, duration: int) -> Dict[str, Any]:
+        """Generate basic fallback content when no documents are available"""
+        
+        fallback_content = f"""# {topic}
+
+## Introducción
+Este es un tema importante en medicina que requiere estudio detallado.
+
+## Objetivos de Aprendizaje
+Al completar esta sesión, deberás ser capaz de:
+- Comprender los conceptos fundamentales de {topic}
+- Identificar las características clínicas principales
+- Aplicar el conocimiento en contextos clínicos
+
+## Desarrollo del Tema
+*Contenido específico requiere documentos de referencia*
+
+Para obtener contenido detallado sobre {topic}, por favor:
+1. Sube documentos médicos relevantes al sistema
+2. Permite que el sistema procese la información
+3. Genera nuevamente el contenido de estudio
+
+## Próximos Pasos
+- Subir material de referencia
+- Buscar fuentes médicas confiables
+- Consultar literatura especializada
+
+*Este contenido se generó sin documentos de referencia específicos.*
+"""
+        
+        return {
+            'topic': topic,
+            'content': fallback_content,
+            'estimated_reading_time': DataUtils.calculate_reading_time(fallback_content),
+            'target_duration': duration,
+            'difficulty': 'basic',
+            'sources_used': 0,
+            'generated_at': datetime.now().isoformat(),
+            'is_fallback': True
+        }
+    
+    def get_processed_documents(self) -> List[Dict[str, Any]]:
+        """Get list of all processed documents"""
+        try:
+            return self.database.execute_query("""
+                SELECT document_id, title, pages, file_size, images_count, processed_at
+                FROM documents
+                ORDER BY processed_at DESC
+            """)
+        except Exception as e:
+            self.logger.error(f"Failed to get processed documents: {e}")
+            return []
+    
+    def delete_document(self, document_id: str) -> bool:
+        """Delete a document and all its chunks"""
+        try:
+            # Delete from vector database
+            if self.collection:
+                chunks = self.collection.get(where={"document_id": document_id})
+                if chunks['ids']:
+                    self.collection.delete(ids=chunks['ids'])
+            
+            # Delete from SQLite database
+            self.database.execute_update("DELETE FROM documents WHERE document_id = ?", (document_id,))
+            self.database.execute_update("DELETE FROM document_images WHERE document_id = ?", (document_id,))
+            
+            self.logger.info(f"Deleted document: {document_id}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to delete document {document_id}: {e}")
+            return False
+    
+    def get_collection_stats(self) -> Dict[str, Any]:
+        """Get statistics about the document collection"""
+        try:
+            doc_count = len(self.get_processed_documents())
+            chunk_count = self.collection.count() if self.collection else 0
+            
+            # Get storage size
+            total_size = sum(
+                f.stat().st_size for f in self.documents_path.rglob('*') if f.is_file()
+            )
+            
+            return {
+                'documents_count': doc_count,
+                'chunks_count': chunk_count,
+                'storage_size_bytes': total_size,
+                'storage_size_mb': total_size / (1024 * 1024),
+                'embeddings_model': 'sentence-transformers/all-MiniLM-L6-v2' if self.embedding_model else 'Not available',
+                'vector_database': 'ChromaDB' if self.collection else 'Not available',
+                'dependencies': {
+                    'PyMuPDF': PYMUPDF_AVAILABLE,
+                    'ChromaDB': CHROMADB_AVAILABLE,
+                    'SentenceTransformers': SENTENCE_TRANSFORMERS_AVAILABLE,
+                    'NumPy': NUMPY_AVAILABLE,
+                    'PIL': PIL_AVAILABLE
+                }
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get collection stats: {e}")
+            return {}
+
+# Export main class
+__all__ = ['MedicalRAGEngine']

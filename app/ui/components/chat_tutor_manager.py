@@ -6,37 +6,40 @@ from tkinter import filedialog
 from datetime import datetime
 import json
 import time
-import logging # Ensure logging is imported
+import logging
 
-# Corrected imports based on the plan
-from core.llm_manager import LLMManager
-# Assuming utils.logging provides get_logger, if not, adjust to standard logging
-# from utils.logging import get_logger # This was in ChatPage
-# If get_logger is not available, use standard logging:
+# Safe imports with fallbacks
+try:
+    from core.llm_manager import LLMManager
+    LLM_MANAGER_AVAILABLE = True
+except ImportError:
+    LLM_MANAGER_AVAILABLE = False
+    LLMManager = None
+
+# Logging setup
 logger = logging.getLogger('MedStudy.ChatTutorPanel')
-# If get_logger is available from utils.logging:
-# from utils.logging import get_logger
-# logger = get_logger("ChatTutorPanel")
-
 
 class ChatTutorPanel(ctk.CTkFrame):
     """Collapsible AI Chat Tutor Panel for MedStudy Pro study sessions."""
 
-    def __init__(self, parent, config, db_manager=None, app_colors: Optional[Dict[str, str]] = None): # db_manager is optional
+    def __init__(self, parent, config, db_manager=None, app_colors: Optional[Dict[str, str]] = None):
         super().__init__(parent, fg_color=app_colors.get("BACKGROUND_COLOR", "#FEFCF9") if app_colors else "#FEFCF9")
         self.config = config
-        self.db_manager = db_manager # May not be used if history isn't saved to DB
-        self.logger = logging.getLogger('MedStudy.ChatTutorPanel') # Standard logging
-        # If using get_logger:
-        # self.logger = get_logger("ChatTutorPanel") 
+        self.db_manager = db_manager
+        self.logger = logging.getLogger('MedStudy.ChatTutorPanel')
 
         self.app_colors = app_colors or {}
         self.text_color = self.app_colors.get("TEXT_COLOR", "#1F2937")
         self.primary_color = self.app_colors.get("PRIMARY_COLOR", "#1E3A8A")
         self.accent_color = self.app_colors.get("ACCENT_COLOR", "#06B6D4")
 
-        # LLM Manager
-        self.llm = LLMManager(config) # LLMManager created in Step 1
+        # LLM Manager - safe initialization
+        self.llm = None
+        if LLM_MANAGER_AVAILABLE and config:
+            try:
+                self.llm = LLMManager(config)
+            except Exception as e:
+                self.logger.error(f"Failed to initialize LLM Manager: {e}")
 
         # State
         self.chat_history: List[Dict[str, str]] = []
@@ -47,7 +50,7 @@ class ChatTutorPanel(ctk.CTkFrame):
 
         # UI
         self.grid_columnconfigure(0, weight=1)
-        self.grid_rowconfigure(1, weight=1) # Chat area should expand
+        self.grid_rowconfigure(1, weight=1)
 
         self._create_ui()
         self._start_status_monitoring()
@@ -61,7 +64,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         # Chat Area
         self._create_chat_area()
 
-        # Quick Action Buttons (placeholder for now, to be detailed in plan step 4)
+        # Quick Action Buttons (placeholder for now)
         self._create_quick_actions_area()
 
         # Input Area
@@ -74,7 +77,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         """Creates the header section with title and status."""
         header_frame = ctk.CTkFrame(self, fg_color="transparent", corner_radius=0)
         header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=(10, 5))
-        header_frame.grid_columnconfigure(0, weight=1) # Allow title to expand
+        header_frame.grid_columnconfigure(0, weight=1)
 
         title_label = ctk.CTkLabel(
             header_frame,
@@ -110,15 +113,9 @@ class ChatTutorPanel(ctk.CTkFrame):
         self.chat_area.grid_columnconfigure(0, weight=1)
 
     def _create_quick_actions_area(self):
-        """Creates an area for quick action buttons (e.g., Feynman, Socratic)."""
-        # This will be populated in a later step (Step 4 of the main plan)
-        # For now, it's just a placeholder frame.
+        """Creates an area for quick action buttons."""
         self.quick_actions_frame = ctk.CTkFrame(self, fg_color="transparent", height=35)
         self.quick_actions_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=(0,5))
-        # Example:
-        # test_button = ctk.CTkButton(self.quick_actions_frame, text="Test Action", height=25, font=ctk.CTkFont(size=10))
-        # test_button.pack(side="left", padx=2)
-
 
     def _create_input_area(self):
         """Creates the message input field and send/stop buttons."""
@@ -126,26 +123,21 @@ class ChatTutorPanel(ctk.CTkFrame):
         input_outer_frame.grid(row=3, column=0, sticky="ew", padx=10, pady=(0, 10))
         input_outer_frame.grid_columnconfigure(0, weight=1)
 
-        # Using an inner frame to better manage padding and border for the textbox
-        input_inner_frame = ctk.CTkFrame(input_outer_frame, fg_color=self.app_colors.get("ACCENT_COLOR", "#E0E7FF"), corner_radius=10) # Light accent for input area
+        input_inner_frame = ctk.CTkFrame(input_outer_frame, fg_color=self.app_colors.get("ACCENT_COLOR", "#E0E7FF"), corner_radius=10)
         input_inner_frame.pack(fill="x", expand=True)
         input_inner_frame.grid_columnconfigure(0, weight=1)
 
-
         self.message_entry = ctk.CTkTextbox(
             input_inner_frame,
-            height=60, # Reduced height
+            height=60,
             font=ctk.CTkFont(size=12),
             text_color=self.text_color,
-            #border_width=1,
-            #border_color=self.primary_color, # Medical blue border
-            #fg_color=self.app_colors.get("BACKGROUND_COLOR", "white"), # Input background
             placeholder_text="Pregunta al tutor médico...",
             wrap="word"
         )
         self.message_entry.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
         self.message_entry.bind("<Return>", self._on_enter)
-        self.message_entry.bind("<Shift-Return>", lambda e: "break") # Allow Shift+Enter for newline, prevent sending
+        self.message_entry.bind("<Shift-Return>", lambda e: "break")
 
         button_frame = ctk.CTkFrame(input_inner_frame, fg_color="transparent")
         button_frame.grid(row=0, column=1, sticky="ns", padx=(5,5), pady=5)
@@ -154,7 +146,7 @@ class ChatTutorPanel(ctk.CTkFrame):
             button_frame,
             text="Enviar",
             command=self._send_message,
-            width=70, # Smaller button
+            width=70,
             height=28,
             font=ctk.CTkFont(size=11, weight="bold"),
             fg_color=self.primary_color
@@ -165,14 +157,13 @@ class ChatTutorPanel(ctk.CTkFrame):
             button_frame,
             text="Parar",
             command=self._stop_generation,
-            width=70, # Smaller button
+            width=70,
             height=28,
             font=ctk.CTkFont(size=11),
             state="disabled",
             fg_color="red"
         )
         self.stop_btn.pack()
-
 
     def _add_tutor_welcome_message(self):
         """Adds the initial welcome message from the AI Tutor."""
@@ -187,43 +178,35 @@ class ChatTutorPanel(ctk.CTkFrame):
         self._add_message_to_ui("assistant", welcome_text, is_initial=True)
 
     def _add_message_to_ui(self, role: str, content: str, save_to_history: bool = True, is_initial: bool = False):
-        """
-        Adds a message to the chat UI.
-        Handles different styling for user and assistant messages.
-        `is_initial` is for messages that shouldn't be saved to history (like welcome).
-        """
+        """Adds a message to the chat UI."""
         # Determine alignment and colors based on role
         justify_anchor = "w" if role == "assistant" else "e"
-        frame_anchor = "w" if role == "assistant" else "e" # For the whole message frame
+        frame_anchor = "w" if role == "assistant" else "e"
         
         # Outer frame to control left/right alignment
         outer_msg_frame = ctk.CTkFrame(self.chat_area, fg_color="transparent")
-        outer_msg_frame.pack(fill="x", pady=(2,5)) # pady changed
+        outer_msg_frame.pack(fill="x", pady=(2,5))
 
         # Inner message bubble
         bubble_fg_color = self.app_colors.get("ACCENT_COLOR", "#06B6D4") if role == "assistant" else self.primary_color
-        bubble_text_color = "white" if role == "assistant" else "white" # Both white for better contrast on colored backgrounds
+        bubble_text_color = "white" if role == "assistant" else "white"
         
         # Adjust bubble color for assistant if accent is too dark
-        if role == "assistant" and self.accent_color == "#06B6D4": # Default accent
-             bubble_fg_color = "#E0F7FA" # Lighter cyan
+        if role == "assistant" and self.accent_color == "#06B6D4":
+             bubble_fg_color = "#E0F7FA"
              bubble_text_color = self.text_color
-
 
         msg_bubble = ctk.CTkFrame(
             outer_msg_frame,
             fg_color=bubble_fg_color,
-            corner_radius=12 # Rounded bubbles
+            corner_radius=12
         )
         
         # Pack bubble to the left or right within the outer frame
         msg_bubble.pack(anchor=frame_anchor, padx=5, pady=2, ipadx=3, ipady=3, side=tk.LEFT if role == "assistant" else tk.RIGHT)
 
-
-        # Max width for bubbles, e.g., 80% of chat_area width
-        # This requires knowing chat_area width, can be tricky or set fixed
+        # Max width for bubbles
         max_bubble_width = self.chat_area.winfo_width() * 0.8 if self.chat_area.winfo_width() > 50 else 200
-
 
         # Timestamp (smaller, less prominent)
         time_str = datetime.now().strftime("%H:%M")
@@ -231,22 +214,21 @@ class ChatTutorPanel(ctk.CTkFrame):
             msg_bubble,
             text=time_str,
             font=ctk.CTkFont(size=9),
-            text_color=bubble_text_color, # Ensure timestamp is visible on bubble
+            text_color=bubble_text_color,
             anchor="e" if role == "user" else "w",
             justify="right" if role == "user" else "left"
         )
         time_label.pack(fill="x", padx=8, pady=(5,0))
 
-
         # Content Label
         content_label = ctk.CTkLabel(
             msg_bubble,
-            text=content.strip(), # Remove leading/trailing whitespace
+            text=content.strip(),
             font=ctk.CTkFont(size=12),
             text_color=bubble_text_color,
-            justify=tk.LEFT, # Text inside bubble always left-justified for readability
-            anchor="w", # Content anchored to west
-            wraplength=max_bubble_width - 20 # Wraplength adjusted for padding
+            justify=tk.LEFT,
+            anchor="w",
+            wraplength=max_bubble_width - 20
         )
         content_label.pack(fill="x", expand=True, padx=8, pady=(2,8))
         
@@ -261,7 +243,6 @@ class ChatTutorPanel(ctk.CTkFrame):
         self.chat_area.update_idletasks()
         self.chat_area._parent_canvas.yview_moveto(1.0)
 
-
     def set_study_context(self, context_text: Optional[str]):
         """Sets the current study material context for the tutor."""
         self.current_study_context = context_text
@@ -269,10 +250,9 @@ class ChatTutorPanel(ctk.CTkFrame):
         if context_text:
             self._add_message_to_ui("assistant", f"Contexto de estudio actualizado: '{context_text[:50]}...'", save_to_history=False)
 
-
     def _send_message(self, event=None):
         if self.is_generating:
-            return "break" # Prevent sending while generating
+            return "break"
 
         message_text = self.message_entry.get("1.0", "end-1c").strip()
         if not message_text:
@@ -288,115 +268,70 @@ class ChatTutorPanel(ctk.CTkFrame):
                 "Por favor, asegúrate que Ollama esté corriendo y el modelo phi3:mini descargado.",
                 save_to_history=False
             )
-            self._check_llm_status_sync() # Trigger a sync check
+            self._check_llm_status_sync()
             return "break"
 
         self._generate_response(message_text)
-        return "break" # Important for Textbox binding to prevent default newline
+        return "break"
 
     def _generate_response(self, user_message: str):
+        """Generates response from the assistant"""
+        if not self.llm:
+            self._add_message_to_ui("assistant", "❌ LLM Manager no disponible. Verifica la configuración del sistema.")
+            return
+
         self.is_generating = True
         self._set_generating_state(True)
-        self._add_message_to_ui("assistant", "🤔 Pensando...", save_to_history=False) # Typing indicator
-
-        # The last message added to UI was the "Thinking..." one. Remove it before adding actual response.
-        # A better way is to have a dedicated typing indicator widget. For now, this is simpler.
-        # This requires self.chat_area.winfo_children()[-1] to be the "Thinking..." message.
-        
-        # This is a simplified way to remove the "Thinking..." message.
-        # A more robust way would be to store a reference to the "Thinking..." bubble and destroy it.
-        if len(self.chat_area.winfo_children()) > 0:
-            # Assuming the "Thinking..." message is the last one added to chat_area
-            # This is a bit fragile. A better way: store ref to thinking_bubble, then destroy.
-            # For now, let's try to remove the last bubble.
-            # This needs to be done carefully.
-            pass
-
+        self._add_temp_streaming_message()
 
         def generation_worker():
-            constructed_messages = []
-            
-            # Add system prompt for tutor personality (will be refined in Step 4)
-            system_prompt = "Eres un tutor médico profesional y amigable. Ayuda al estudiante a aprender activamente. Da pistas antes que respuestas directas. Adapta tu lenguaje al nivel de un estudiante de medicina."
-            constructed_messages.append({"role": "system", "content": system_prompt})
-
-            if self.current_study_context:
-                constructed_messages.append({"role": "system", "content": f"Considera el siguiente material de estudio actual: {self.current_study_context}"})
-            
-            # Add relevant chat history (condensed)
-            # For now, let's add last N messages to keep it simple. Max 5 history turns (user+assistant).
-            history_to_include = self.chat_history[-10:] # last 5 turns
-            for msg in history_to_include:
-                 constructed_messages.append({"role": msg["role"], "content": msg["content"]})
-            
-            constructed_messages.append({"role": "user", "content": user_message})
-
-            full_response_content = ""
-            temp_response_bubble = None # To store reference to the streaming bubble
-
             try:
-                # Remove "Thinking..." bubble *before* starting to stream the actual response
-                # This is still tricky. Let's assume the "Thinking..." bubble is the last child.
-                children = self.chat_area.winfo_children()
-                if children and children[-1].winfo_children(): # Check if the last child (outer_msg_frame) has children (msg_bubble)
-                    # And if its text is "🤔 Pensando..."
-                    # This is highly dependent on the widget structure.
-                    # A truly robust solution: self.thinking_bubble.destroy() if self.thinking_bubble else None
-                    # For now, we'll create the assistant bubble first for streaming.
-                    pass
-
-
-                # Create the assistant's message bubble once
-                # This part needs to be run in the main thread using self.after
-                def create_stream_bubble():
-                    nonlocal temp_response_bubble
-                    # Create a new message bubble for the assistant's response stream
-                    # This is a simplified placeholder. The actual _add_message_to_ui creates a complex structure.
-                    # We need a way to get a reference to the content_label of that structure.
-                    # For now, let's just create a simple label to update. This will be visually inconsistent.
-                    
-                    # ---- This is the problematic part for streaming update ----
-                    # A proper solution would involve `_add_message_to_ui` returning the content label widget,
-                    # or having a dedicated method to create an empty bubble and return its content label.
-                    
-                    # Let's try a simplified approach for now:
-                    # We will add the full message at the end. During streaming, we update a dedicated "typing" label.
-                    # This means the _add_message_to_ui call for "Thinking..." is what we update.
-                    
-                    # If we want to stream into a new bubble:
-                    # 1. Create an empty bubble structure via _add_message_to_ui or similar.
-                    # 2. Get the content_label of that bubble.
-                    # 3. Update that content_label in _update_streaming_message.
-
-                    # Simpler: Update the "Thinking..." message.
-                    # Find the "Thinking..." message bubble content_label
-                    # This is still fragile.
-                    # For now, we'll just accumulate text and add it once at the end.
-                    # And use a separate typing indicator if possible.
-                    # The current _add_temp_message and _update_temp_message from ChatPage is better.
-                    # Let's re-integrate that logic.
-
-                    self.after(0, self._add_temp_streaming_message) # Create the temporary bubble
+                # Prepare messages in modern format
+                messages = []
                 
-                create_stream_bubble()
+                # Add system prompt
+                messages.append({
+                    "role": "system", 
+                    "content": "Eres un tutor médico profesional y amigable. Ayuda al estudiante a aprender activamente. Da pistas antes que respuestas directas. Adapta tu lenguaje al nivel de un estudiante de medicina."
+                })
 
+                if self.current_study_context:
+                    messages.append({
+                        "role": "system", 
+                        "content": f"Considera el siguiente material de estudio actual: {self.current_study_context}"
+                    })
+                
+                # Add recent chat history
+                for msg in self.chat_history[-10:]:
+                    messages.append({
+                        "role": msg["role"], 
+                        "content": msg["content"]
+                    })
+                
+                # Add current user message
+                messages.append({
+                    "role": "user", 
+                    "content": user_message
+                })
 
-                for chunk_content in self.llm.chat(messages=constructed_messages, stream=True):
-                    if not self.is_generating: # Check if stopped
-                        self.logger.info("Generation stopped by user or error.")
+                full_response_content = ""
+
+                # Stream response
+                for chunk_content in self.llm.chat(messages=messages, stream=True):
+                    if not self.is_generating:
                         break
                     full_response_content += chunk_content
-                    # Update UI with the chunk
-                    self.after(0, lambda c=full_response_content: self._update_temp_streaming_message(c))
+                    # Update UI every few characters
+                    if len(full_response_content) % 20 == 0:
+                        self.after(0, lambda c=full_response_content: self._update_temp_streaming_message(c))
                 
-                if not self.is_generating and not full_response_content: # Stopped before any response
+                if not self.is_generating and not full_response_content:
                     full_response_content = "Generación detenida."
 
             except Exception as e:
                 self.logger.error(f"Error during LLM generation: {e}", exc_info=True)
                 full_response_content = f"❌ Error del Tutor AI: {str(e)}"
             finally:
-                # Ensure this runs in the main thread
                 self.after(0, lambda: self._finalize_generation(full_response_content.strip()))
 
         self.current_thread = threading.Thread(target=generation_worker, daemon=True)
@@ -404,9 +339,6 @@ class ChatTutorPanel(ctk.CTkFrame):
 
     def _add_temp_streaming_message(self):
         """Adds a temporary message bubble for streaming content."""
-        # Similar to _add_message_to_ui but for a temporary bubble
-        # This is a simplified version of ChatPage's _add_temp_message
-        
         role = "assistant"
         justify_anchor = "w"
         frame_anchor = "w"
@@ -414,7 +346,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         outer_msg_frame = ctk.CTkFrame(self.chat_area, fg_color="transparent")
         outer_msg_frame.pack(fill="x", pady=(2,5))
 
-        bubble_fg_color = "#E0F7FA" # Lighter cyan for streaming
+        bubble_fg_color = "#E0F7FA"
         bubble_text_color = self.text_color
 
         self.temp_streaming_bubble = ctk.CTkFrame(
@@ -426,7 +358,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         
         self.temp_streaming_content_label = ctk.CTkLabel(
             self.temp_streaming_bubble,
-            text="...", # Initial streaming text
+            text="...",
             font=ctk.CTkFont(size=12),
             text_color=bubble_text_color,
             justify=tk.LEFT,
@@ -436,64 +368,35 @@ class ChatTutorPanel(ctk.CTkFrame):
         self.temp_streaming_content_label.pack(fill="x", expand=True, padx=8, pady=(2,8))
         self.chat_area._parent_canvas.yview_moveto(1.0)
 
-
     def _update_temp_streaming_message(self, content: str):
         """Updates the content of the temporary streaming message bubble."""
         if hasattr(self, 'temp_streaming_content_label') and self.temp_streaming_content_label.winfo_exists():
-            self.temp_streaming_content_label.configure(text=content + " ▌") # Add a cursor
+            self.temp_streaming_content_label.configure(text=content + " ▌")
             self.chat_area._parent_canvas.yview_moveto(1.0)
         elif hasattr(self, 'temp_streaming_bubble') and self.temp_streaming_bubble.winfo_exists():
-            # If only the bubble exists, means label was somehow destroyed, try to remove bubble
              self.temp_streaming_bubble.destroy()
-             del self.temp_streaming_bubble
-             del self.temp_streaming_content_label
-
+             if hasattr(self, 'temp_streaming_content_label'):
+                 delattr(self, 'temp_streaming_content_label')
 
     def _finalize_generation(self, final_content: str):
         """Cleans up temporary streaming messages and adds the final message."""
         # Remove temporary streaming bubble
         if hasattr(self, 'temp_streaming_bubble') and self.temp_streaming_bubble.winfo_exists():
             self.temp_streaming_bubble.destroy()
-            del self.temp_streaming_bubble
+            delattr(self, 'temp_streaming_bubble')
             if hasattr(self, 'temp_streaming_content_label'):
-                 del self.temp_streaming_content_label
+                 delattr(self, 'temp_streaming_content_label')
         
-        # Remove the "Thinking..." message if it's still there
-        # This is still tricky. A more robust way: store a reference to the "Thinking..." bubble.
-        # For now, we assume if a temp_streaming_bubble was used, the "Thinking..." was replaced or handled.
-        # If not, try to find and remove it.
-        children = list(self.chat_area.winfo_children()) # Make a copy for safe iteration if needed
-        if children:
-            last_child_outer_frame = children[-1]
-            # Check if it's the temporary "Thinking..." message (heuristics)
-            # This is not robust. A better way is to hold a reference to the "Thinking" bubble.
-            # For now, we rely on the streaming bubble replacing it or being the one removed.
-
-
         if final_content:
             self._add_message_to_ui("assistant", final_content)
         
         self._set_generating_state(False)
         self.message_entry.focus()
 
-
-    def _format_error_message(self, error_text: str) -> str:
-        # This can reuse or adapt the logic from ChatPage._format_error_message
-        # For brevity, returning a simpler version here.
-        self.logger.error(f"Chat Tutor Error: {error_text}")
-        if "Connection refused" in error_text:
-            return "❌ No se puede conectar con Ollama. Verifica que esté corriendo."
-        if "model not found" in error_text:
-            return f"❌ Modelo {self.llm.model} no encontrado. Descárgalo con `ollama pull {self.llm.model}`."
-        if "timeout" in error_text:
-            return "⏰ Timeout - El modelo tardó demasiado en responder."
-        return f"❌ Error del Tutor AI: {error_text[:100]}..."
-
-
     def _set_generating_state(self, is_generating: bool):
         self.is_generating = is_generating
         if is_generating:
-            self.send_btn.configure(state="disabled", text="...") # Simpler text for smaller button
+            self.send_btn.configure(state="disabled", text="...")
             self.stop_btn.configure(state="normal")
         else:
             self.send_btn.configure(state="normal", text="Enviar")
@@ -501,26 +404,18 @@ class ChatTutorPanel(ctk.CTkFrame):
 
     def _stop_generation(self):
         if self.is_generating:
-            self.is_generating = False # Signal the generation thread to stop
+            self.is_generating = False
             if self.current_thread and self.current_thread.is_alive():
-                # Threads cannot be killed directly in Python.
-                # The generation_worker checks self.is_generating.
                 self.logger.info("Stop generation requested. Worker thread will stop on next check.")
-            # Finalize will be called by the worker thread or its error handling
-            # We can call _finalize_generation here with a "stopped" message if worker doesn't handle it quickly
             self._finalize_generation("⏹️ Generación detenida.")
-
 
     def _on_enter(self, event):
         # Send message on Enter unless Shift is pressed
         if not (event.state & 0x0001):  # Check for Shift key state
             self._send_message()
-            return "break"  # Prevents default newline insertion by Textbox
-        # Allow default behavior (newline) if Shift+Enter
+            return "break"
         return None
 
-
-    # Status Monitoring (similar to ChatPage)
     def _start_status_monitoring(self):
         # Initial check
         self._check_llm_status_async()
@@ -529,7 +424,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         def monitor_worker():
             while True:
                 time.sleep(30)
-                if not self.winfo_exists(): # Stop if widget is destroyed
+                if not self.winfo_exists():
                     break
                 self._check_llm_status_async()
         
@@ -540,22 +435,30 @@ class ChatTutorPanel(ctk.CTkFrame):
         threading.Thread(target=self._check_llm_status_sync, daemon=True).start()
 
     def _check_llm_status_sync(self):
-        if not self.winfo_exists(): return
+        if not self.winfo_exists(): 
+            return
 
         self.after(0, lambda: self._update_status_ui("checking", "Verificando..."))
         
-        status_details = self.llm.get_status() # From LLMManager
+        if not self.llm:
+            self.after(0, lambda: self._update_status_ui("error", "LLM no disponible"))
+            return
         
-        if status_details.get("target_model_available"):
-            self.after(0, lambda: self._update_status_ui("ready", "Listo"))
-        elif status_details.get("ollama_reachable"):
-            self.after(0, lambda: self._update_status_ui("error", f"Modelo '{self.llm.model}' no hallado"))
-        else:
-            self.after(0, lambda: self._update_status_ui("error", "Ollama OFFLINE"))
-
+        try:
+            status_details = self.llm.get_status()
+            
+            if status_details.get("target_model_available"):
+                self.after(0, lambda: self._update_status_ui("ready", "Listo"))
+            elif status_details.get("ollama_reachable"):
+                self.after(0, lambda: self._update_status_ui("error", f"Modelo '{self.llm.model}' no hallado"))
+            else:
+                self.after(0, lambda: self._update_status_ui("error", "Ollama OFFLINE"))
+        except Exception as e:
+            self.after(0, lambda: self._update_status_ui("error", f"Error: {str(e)[:20]}..."))
 
     def _update_status_ui(self, status_key: str, message: str):
-        if not self.winfo_exists(): return
+        if not self.winfo_exists(): 
+            return
 
         self.llm_status = status_key
         color_map = {"ready": "green", "checking": "orange", "error": "red", "unknown": "grey"}
@@ -563,7 +466,7 @@ class ChatTutorPanel(ctk.CTkFrame):
         self.status_indicator.configure(text_color=color_map.get(status_key, "grey"))
         self.status_label.configure(text=message)
 
-        if not self.is_generating: # Don't mess with send button if it's already in "generating" state
+        if not self.is_generating:
             self.send_btn.configure(state="normal" if status_key == "ready" else "disabled")
 
     # Public methods for interaction
@@ -578,7 +481,6 @@ class ChatTutorPanel(ctk.CTkFrame):
         self.logger.info("Chat history cleared.")
 
     def export_chat_to_file(self, filename: str, file_format: str = "markdown"):
-        # Adapted from ChatPage.export_chat
         try:
             if file_format == "json":
                 with open(filename, "w", encoding="utf-8") as f:
