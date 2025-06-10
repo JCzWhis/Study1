@@ -1,210 +1,402 @@
+#!/usr/bin/env python3
 """
-MedStudy Pro - Main Window (Rediseño Profesional)
-Interfaz principal de la aplicación con un diseño moderno y médico.
-Utiliza componentes modulares para construir la UI.
+MedStudy Pro - Main Launcher (VERSIÓN ARREGLADA)
+Punto de entrada principal con manejo robusto de errores y importaciones seguras
 """
 
-import customtkinter as ctk
-import logging
 import sys
+import os
+import argparse
+import logging
 from pathlib import Path
 
-# Agregar el directorio raíz al path para importaciones correctas
-project_root = Path(__file__).parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
+# --- CONFIGURACIÓN INICIAL ---
+def setup_path():
+    """Configura el path del proyecto para importaciones correctas"""
+    project_root = Path(__file__).parent.absolute()
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    return project_root
 
-# --- Importaciones de Componentes y Sistema ---
-from app.config import config as global_config
-from app.ui.components.medical_typography import MedicalTypography
-from app.ui.components.medical_cards import MedicalStatsCard, MedicalTopicCard, MedicalContentCard
-from app.ui.components.medical_indicators import SystemStatusIndicator, MedicalProgressRing, MedicalLoadingSpinner
+def setup_basic_logging():
+    """Configura logging básico antes de cargar el sistema completo"""
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
+    )
+    return logging.getLogger('MedStudy.Main')
 
-# --- Ventana Principal ---
-class MedStudyMainWindow(ctk.CTk):
-    """Ventana principal de MedStudy Pro con diseño profesional."""
-
-    def __init__(self, config=global_config, **kwargs):
-        super().__init__(**kwargs)
-        
-        self.config = config
-        self.typography = MedicalTypography()
-        self.colors = self.config.colors
-
-        self._setup_window()
-        self._create_interface()
-        
-        logging.info("MedStudy Pro professional main window initialized with modular components.")
-
-    def _setup_window(self):
-        """Configura las propiedades principales de la ventana."""
-        self.title("🧠 MedStudy Pro - Medical Study Assistant")
-        self.geometry("1400x900")
-        self.configure(fg_color=self.colors.BACKGROUND_CREAM)
-        self.minsize(1100, 750)
-        
-        icon_path = project_root / "assets/icon.ico"
+# --- IMPORTACIONES SEGURAS ---
+def safe_import():
+    """Importa módulos core de manera segura"""
+    imports = {
+        'config': None,
+        'database': None,
+        'utils': None,
+        'ui': None,
+        'diagnostics': None
+    }
+    
+    logger = logging.getLogger('MedStudy.SafeImport')
+    
+    # Importar configuración
+    try:
+        from app.config import config
+        imports['config'] = config
+        logger.info("✅ Configuration loaded")
+    except ImportError as e:
+        logger.error(f"❌ Config import failed: {e}")
         try:
-            if icon_path.exists():
-                self.iconbitmap(str(icon_path))
+            from utils.config import get_config
+            imports['config'] = get_config()
+            logger.info("✅ Fallback config loaded")
+        except ImportError as e2:
+            logger.error(f"❌ Fallback config failed: {e2}")
+    
+    # Importar database
+    try:
+        from core.database import DatabaseManager, initialize_database
+        imports['database'] = (DatabaseManager, initialize_database)
+        logger.info("✅ Database components loaded")
+    except ImportError as e:
+        logger.error(f"❌ Database import failed: {e}")
+    
+    # Importar utilidades
+    try:
+        from core.utils import run_system_diagnostic
+        imports['utils'] = run_system_diagnostic
+        logger.info("✅ Core utilities loaded")
+    except ImportError as e:
+        logger.error(f"❌ Core utils import failed: {e}")
+        try:
+            from utils.diagnostics import perform_system_diagnostics
+            imports['utils'] = perform_system_diagnostics
+            logger.info("✅ Fallback diagnostics loaded")
+        except ImportError as e2:
+            logger.error(f"❌ Fallback diagnostics failed: {e2}")
+    
+    # Importar UI
+    try:
+        from app.ui.main_window import MedStudyMainWindow
+        imports['ui'] = MedStudyMainWindow
+        logger.info("✅ Main UI loaded")
+    except ImportError as e:
+        logger.error(f"❌ Main UI import failed: {e}")
+        try:
+            # Fallback para UI simple
+            import customtkinter as ctk
+            
+            class FallbackWindow(ctk.CTk):
+                def __init__(self):
+                    super().__init__()
+                    self.title("MedStudy Pro - Modo Básico")
+                    self.geometry("800x600")
+                    
+                    label = ctk.CTkLabel(
+                        self,
+                        text="MedStudy Pro\n\nModo Básico Activo\n\nAlgunos componentes no están disponibles.\nUsa 'python gradio_launcher.py' para la interfaz web.",
+                        font=ctk.CTkFont(size=16),
+                        justify="center"
+                    )
+                    label.pack(expand=True)
+                    
+                    btn = ctk.CTkButton(
+                        self,
+                        text="Lanzar Interfaz Web",
+                        command=self.launch_web
+                    )
+                    btn.pack(pady=20)
+                
+                def launch_web(self):
+                    import subprocess
+                    try:
+                        subprocess.Popen([sys.executable, "gradio_launcher.py"])
+                        self.destroy()
+                    except FileNotFoundError:
+                        print("gradio_launcher.py no encontrado")
+            
+            imports['ui'] = FallbackWindow
+            logger.info("✅ Fallback UI loaded")
+        except ImportError as e2:
+            logger.error(f"❌ Fallback UI failed: {e2}")
+    
+    return imports
+
+# --- FUNCIONES DE DIAGNÓSTICO ---
+def run_diagnostic(diagnostic_func, force_output=False):
+    """Ejecuta diagnóstico del sistema"""
+    logger = logging.getLogger('MedStudy.Diagnostic')
+    
+    if not diagnostic_func:
+        logger.error("❌ No hay función de diagnóstico disponible")
+        return False
+    
+    logger.info("🔍 Ejecutando diagnóstico del sistema...")
+    
+    try:
+        results = diagnostic_func()
+        
+        if force_output or logger.level <= logging.INFO:
+            print("\n" + "="*60)
+            print("🔍 DIAGNÓSTICO DEL SISTEMA")
+            print("="*60)
+            
+            # Python
+            python_info = results.get('python_version', results.get('python', {}))
+            if python_info:
+                status = "✅" if python_info.get('is_compatible', False) else "❌"
+                print(f"{status} Python: {python_info.get('version', 'unknown')}")
+            
+            # Ollama
+            ollama_info = results.get('ollama_status', results.get('ollama', {}))
+            if ollama_info:
+                status = "✅" if ollama_info.get('running', False) else "❌"
+                print(f"{status} Ollama: {ollama_info.get('host', 'unknown')}")
+                
+                model_status = "✅" if ollama_info.get('model_available', False) else "❌"
+                print(f"{model_status} Modelo: {ollama_info.get('model', 'unknown')}")
+            
+            # Dependencias
+            deps_info = results.get('dependencies', {})
+            if deps_info:
+                all_deps = deps_info.get('all_installed', False)
+                status = "✅" if all_deps else "⚠️"
+                print(f"{status} Dependencias: {'Todas instaladas' if all_deps else 'Algunas faltantes'}")
+            
+            # Estado general
+            overall = results.get('overall_status', 'unknown')
+            if overall == 'healthy':
+                print("\n🎉 Sistema completamente funcional")
             else:
-                logging.warning(f"Icon not found at {icon_path}")
-        except Exception as e:
-            logging.debug(f"Could not load icon: {e}")
+                print("\n⚠️ Sistema funcional con limitaciones")
+                print("💡 Usa 'python setup.py' para resolver problemas")
+            
+            print("="*60)
+        
+        return overall == 'healthy' if 'overall_status' in results else True
+        
+    except Exception as e:
+        logger.error(f"❌ Error en diagnóstico: {e}")
+        return False
 
-    def _create_interface(self):
-        """Crea la estructura de la interfaz principal."""
-        self._create_header()
-        self._create_main_content_area()
-        self._create_status_bar()
+# --- FUNCIONES DE LANZAMIENTO ---
+def launch_desktop_app(ui_class, config, force_launch=False):
+    """Lanza la aplicación desktop"""
+    logger = logging.getLogger('MedStudy.Desktop')
+    
+    if not ui_class:
+        logger.error("❌ Clase UI no disponible")
+        return False
+    
+    try:
+        logger.info("🚀 Iniciando aplicación desktop...")
+        
+        # Verificar CustomTkinter
+        try:
+            import customtkinter as ctk
+            ctk.set_appearance_mode("light")
+            ctk.set_default_color_theme("blue")
+        except ImportError:
+            logger.error("❌ CustomTkinter no disponible")
+            return False
+        
+        # Crear y ejecutar aplicación
+        if config:
+            app = ui_class(config=config)
+        else:
+            app = ui_class()
+        
+        logger.info("✅ Aplicación desktop iniciada")
+        app.mainloop()
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Error lanzando desktop: {e}")
+        if not force_launch:
+            logger.info("💡 Intenta: python main.py --web")
+        return False
 
-    def _create_header(self):
-        """Crea el header moderno de la aplicación."""
-        header_frame = ctk.CTkFrame(self, fg_color=self.colors.PRIMARY_BLUE, height=70, corner_radius=0)
-        header_frame.pack(fill="x", side="top")
-        header_frame.grid_columnconfigure(1, weight=1)
+def launch_web_app():
+    """Lanza la aplicación web como fallback"""
+    logger = logging.getLogger('MedStudy.Web')
+    
+    try:
+        logger.info("🌐 Lanzando interfaz web...")
+        import subprocess
         
-        title_container = ctk.CTkFrame(header_frame, fg_color="transparent")
-        title_container.grid(row=0, column=0, padx=25, pady=15)
+        # Verificar si gradio_launcher.py existe
+        gradio_path = Path("gradio_launcher.py")
+        if not gradio_path.exists():
+            logger.error("❌ gradio_launcher.py no encontrado")
+            return False
         
-        ctk.CTkLabel(
-            title_container, text="🧠 MedStudy Pro", font=self.typography.get_font("heading_20_bold"),
-            # --- FIX APPLIED HERE ---
-            # Replaced self.colors.CLINICAL_WHITE with its hex code.
-            text_color="#FFFFFF"
-        ).pack(anchor="w")
+        # Lanzar en proceso separado
+        process = subprocess.Popen([sys.executable, "gradio_launcher.py"])
+        logger.info("✅ Interfaz web iniciada")
         
-        ctk.CTkLabel(
-            title_container, text="Evidence-Based Medical Learning", font=self.typography.get_font("caption_12_normal"),
-            text_color="#DBEAFE"
-        ).pack(anchor="w")
+        # Esperar a que termine
+        process.wait()
+        return True
         
-        status_indicator = SystemStatusIndicator(header_frame, typography=self.typography, is_active=True)
-        status_indicator.grid(row=0, column=2, padx=25)
+    except Exception as e:
+        logger.error(f"❌ Error lanzando web: {e}")
+        return False
 
-    def _create_main_content_area(self):
-        """Crea el área principal con el TabView."""
-        self.tab_view = ctk.CTkTabview(self, corner_radius=10, border_width=1, border_color=self.colors.BORDER_LIGHT)
-        self.tab_view.pack(expand=True, fill="both", padx=20, pady=20)
-        
-        self.tab_view.configure(
-            font=self.typography.get_font("button_14_bold"),
-            fg_color=self.colors.BACKGROUND_CREAM,
-            segmented_button_fg_color=self.colors.BACKGROUND_CREAM,
-            segmented_button_selected_color=self.colors.PRIMARY_BLUE,
-            # --- FIX APPLIED HERE ---
-            segmented_button_unselected_color="#FFFFFF",
-            segmented_button_selected_hover_color=self.colors.ACCENT_TURQUOISE,
-            segmented_button_unselected_hover_color="#F0F9FF"
-        )
-        
-        tabs = ["📊 Dashboard", "📋 Planner", "📖 Sessions", "🧪 Exams", "📈 Progress"]
-        for tab_name in tabs:
-            self.tab_view.add(tab_name)
-            # --- FIX APPLIED HERE ---
-            self.tab_view.tab(tab_name).configure(fg_color="#FFFFFF")
-        
-        self._setup_dashboard_tab()
-        self._setup_planner_tab()
-        self._setup_sessions_tab()
-        self._setup_progress_tab()
-        self._setup_placeholder_tab("🧪 Exams", "Adaptive Exam Generator", "Crea exámenes personalizados con casos clínicos generados desde tu base de conocimiento personal (RAG).")
+def show_help():
+    """Muestra ayuda de uso"""
+    help_text = """
+🧠 MedStudy Pro - Medical Study Assistant
 
-    def _setup_dashboard_tab(self):
-        """Configura el contenido del tab de Dashboard."""
-        tab = self.tab_view.tab("📊 Dashboard")
-        tab.grid_columnconfigure(0, weight=1)
-        
-        ctk.CTkLabel(tab, text="Welcome to your Medical Command Center", font=self.typography.get_font("heading_24_bold"),
-                     text_color=self.colors.TEXT_DARK).grid(row=0, column=0, padx=25, pady=(25, 5), sticky="w")
-        
-        ctk.CTkLabel(tab, text="Here's a summary of your study progress and quick actions to get started.",
-                     font=self.typography.get_font("body_15_normal"), text_color=self.colors.TEXT_MEDIUM
-                     ).grid(row=1, column=0, padx=25, pady=(0, 25), sticky="w")
-        
-        stats_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        stats_frame.grid(row=2, column=0, padx=15, pady=15, sticky="ew")
-        stats_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
-        
-        MedicalStatsCard(stats_frame, "Sessions", "12", "📖", self.colors.PRIMARY_BLUE, self.typography).grid(row=0, column=0, padx=10, sticky="nsew")
-        MedicalStatsCard(stats_frame, "Hours Studied", "4.5h", "⏱️", self.colors.ACCENT_TURQUOISE, self.typography).grid(row=0, column=1, padx=10, sticky="nsew")
-        MedicalStatsCard(stats_frame, "MedCards", "128", "🎴", self.colors.SUCCESS_GREEN, self.typography).grid(row=0, column=2, padx=10, sticky="nsew")
-        MedicalStatsCard(stats_frame, "Current Streak", "8 days", "🔥", self.colors.WARNING_AMBER, self.typography).grid(row=0, column=3, padx=10, sticky="nsew")
+USO:
+    python main.py [opciones]
 
-    def _setup_planner_tab(self):
-        """Configura el tab del Planner con tarjetas de temas."""
-        tab = self.tab_view.tab("📋 Planner")
-        tab.grid_columnconfigure(0, weight=1)
+OPCIONES:
+    --diagnostic    Ejecutar diagnóstico del sistema
+    --web          Lanzar interfaz web (Gradio)
+    --force-launch Forzar lanzamiento ignorando errores
+    --config-info  Mostrar información de configuración
+    --help, -h     Mostrar esta ayuda
 
-        ctk.CTkLabel(tab, text="Retrospective Study Planner", font=self.typography.get_font("heading_24_bold"),
-                     text_color=self.colors.TEXT_DARK).grid(row=0, column=0, padx=25, pady=(25, 5), sticky="w")
+EJEMPLOS:
+    python main.py                    # Lanzar aplicación desktop
+    python main.py --diagnostic      # Solo diagnóstico
+    python main.py --web             # Interfaz web
+    python main.py --force-launch    # Forzar lanzamiento
+
+RESOLUCIÓN DE PROBLEMAS:
+    1. python setup.py               # Configuración automática
+    2. python main.py --diagnostic   # Verificar sistema
+    3. python main.py --web          # Interfaz web alternativa
+
+SOPORTE:
+    - Issues: GitHub repository
+    - Docs: README.md
+"""
+    print(help_text)
+
+def show_config_info(config):
+    """Muestra información de configuración"""
+    print("\n" + "="*50)
+    print("⚙️ INFORMACIÓN DE CONFIGURACIÓN")
+    print("="*50)
+    
+    if not config:
+        print("❌ Configuración no disponible")
+        return
+    
+    try:
+        # Ollama config
+        if hasattr(config, 'get_ollama_config'):
+            ollama_config = config.get_ollama_config()
+            print(f"🤖 Ollama Host: {ollama_config.get('host', 'unknown')}")
+            print(f"🧠 Modelo: {ollama_config.get('model', 'unknown')}")
+            print(f"⏱️ Timeout: {ollama_config.get('timeout', 'unknown')}s")
         
-        topics_frame = ctk.CTkScrollableFrame(tab, fg_color="transparent")
-        topics_frame.grid(row=1, column=0, sticky="nsew", padx=15, pady=15)
-        tab.grid_rowconfigure(1, weight=1)
-        topics_frame.grid_columnconfigure(0, weight=1)
+        # Window config
+        if hasattr(config, 'get_window_config'):
+            window_config = config.get_window_config()
+            print(f"🖥️ Ventana: {window_config.get('width')}x{window_config.get('height')}")
         
-        MedicalTopicCard(topics_frame, "Glomerulonefritis", "Nefrología", 0.75, self.typography).pack(fill="x", padx=10, pady=8)
-        MedicalTopicCard(topics_frame, "Manejo de Sepsis", "Medicina Interna", 0.40, self.typography).pack(fill="x", padx=10, pady=8)
-        MedicalTopicCard(topics_frame, "Artritis Reumatoide", "Reumatología", 0.90, self.typography).pack(fill="x", padx=10, pady=8)
-
-    def _setup_sessions_tab(self):
-        """Configura el tab de Sesiones con una tarjeta de contenido y un spinner."""
-        tab = self.tab_view.tab("📖 Sessions")
-        tab.grid_columnconfigure(0, weight=1)
-        tab.grid_columnconfigure(1, weight=1)
-        tab.grid_rowconfigure(0, weight=1)
+        # Database
+        if hasattr(config, 'get_database_url'):
+            db_url = config.get_database_url()
+            print(f"💾 Base de datos: {db_url}")
         
-        sample_content = "La anemia ferropénica es la causa más común de anemia a nivel mundial...\n\nFisiopatología:\n1. Depleción de los depósitos de hierro.\n2. Eritropoyesis deficiente en hierro.\n3. Anemia microcítica hipocrómica evidente."
-        MedicalContentCard(tab, "Anemia Ferropénica: Generalidades", sample_content, self.typography).grid(row=0, column=0, sticky="nsew", padx=10, pady=15)
+    except Exception as e:
+        print(f"❌ Error leyendo configuración: {e}")
+    
+    print("="*50)
+
+# --- FUNCIÓN PRINCIPAL ---
+def main():
+    """Función principal del launcher"""
+    # Configuración inicial
+    project_root = setup_path()
+    logger = setup_basic_logging()
+    
+    logger.info("🧠 MedStudy Pro - Iniciando sistema...")
+    logger.info(f"📁 Directorio: {project_root}")
+    
+    # Parse argumentos
+    parser = argparse.ArgumentParser(description='MedStudy Pro - Medical Study Assistant')
+    parser.add_argument('--diagnostic', action='store_true', help='Ejecutar diagnóstico del sistema')
+    parser.add_argument('--web', action='store_true', help='Lanzar interfaz web')
+    parser.add_argument('--force-launch', action='store_true', help='Forzar lanzamiento')
+    parser.add_argument('--config-info', action='store_true', help='Mostrar información de configuración')
+    
+    args = parser.parse_args()
+    
+    # Mostrar ayuda si no hay argumentos
+    if len(sys.argv) == 1:
+        pass  # Comportamiento normal
+    
+    # Importaciones seguras
+    logger.info("📦 Cargando módulos del sistema...")
+    imports = safe_import()
+    
+    config = imports['config']
+    ui_class = imports['ui']
+    diagnostic_func = imports['utils']
+    
+    # Mostrar información de configuración
+    if args.config_info:
+        show_config_info(config)
+        return 0
+    
+    # Ejecutar diagnóstico
+    if args.diagnostic:
+        success = run_diagnostic(diagnostic_func, force_output=True)
+        return 0 if success else 1
+    
+    # Lanzar interfaz web
+    if args.web:
+        success = launch_web_app()
+        return 0 if success else 1
+    
+    # Diagnóstico automático (si no es force-launch)
+    if not args.force_launch:
+        logger.info("🔍 Ejecutando verificación automática...")
+        diagnostic_ok = run_diagnostic(diagnostic_func, force_output=False)
         
-        spinner_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        spinner_frame.grid(row=0, column=1, padx=10, pady=15)
-        spinner = MedicalLoadingSpinner(spinner_frame, self.typography)
-        spinner.pack(pady=50)
-        spinner.start()
-
-    def _setup_progress_tab(self):
-        """Configura el tab de Progreso con anillos de progreso."""
-        tab = self.tab_view.tab("📈 Progress")
-        tab.grid_columnconfigure((0, 1, 2), weight=1)
-        
-        ctk.CTkLabel(tab, text="Cognitive Progress Analysis", font=self.typography.get_font("heading_24_bold"),
-                     text_color=self.colors.TEXT_DARK).grid(row=0, column=0, columnspan=3, padx=25, pady=(25, 5), sticky="w")
-        
-        ring1 = MedicalProgressRing(tab, size=200, progress=82, typography=self.typography)
-        ring1.grid(row=1, column=0, pady=40)
-        ctk.CTkLabel(tab, text="Retención General", font=self.typography.get_font("heading_16_bold")).grid(row=2, column=0)
-
-        ring2 = MedicalProgressRing(tab, size=200, progress=65, typography=self.typography)
-        ring2.grid(row=1, column=1, pady=40)
-        ctk.CTkLabel(tab, text="Cardiología", font=self.typography.get_font("heading_16_bold")).grid(row=2, column=1)
-
-        ring3 = MedicalProgressRing(tab, size=200, progress=91, typography=self.typography)
-        ring3.grid(row=1, column=2, pady=40)
-        ctk.CTkLabel(tab, text="Nefrología", font=self.typography.get_font("heading_16_bold")).grid(row=2, column=2)
-
-    def _setup_placeholder_tab(self, tab_name: str, title: str, description: str):
-        """Crea contenido placeholder para los tabs no implementados."""
-        tab = self.tab_view.tab(tab_name)
-        container = ctk.CTkFrame(tab, fg_color="#F8FAFC", corner_radius=12)
-        container.pack(expand=True, fill="both", padx=25, pady=25)
-        ctk.CTkLabel(container, text="🚧", font=("Arial", 48)).pack(pady=(60, 10))
-        ctk.CTkLabel(container, text=title, font=self.typography.get_font("heading_20_bold"), text_color=self.colors.TEXT_DARK).pack(pady=5)
-        ctk.CTkLabel(container, text=description, font=self.typography.get_font("body_14_normal"), text_color=self.colors.TEXT_MEDIUM, wraplength=500).pack(pady=(0, 60))
-
-    def _create_status_bar(self):
-        """Crea la barra de estado en la parte inferior."""
-        status_frame = ctk.CTkFrame(self, height=35, fg_color="#F8FAFC", corner_radius=0, border_width=1, border_color=self.colors.BORDER_LIGHT)
-        status_frame.pack(fill="x", side="bottom")
-        status_frame.pack_propagate(False)
-        ctk.CTkLabel(status_frame, text=f"MedStudy Pro v1.0 | 🧠 Model: {self.config.get('Ollama', 'model', 'phi3:mini')} | © 2024 Dr. Cruz Migueles",
-                     font=self.typography.get_font("code_12_normal"), text_color="#6B7280").pack(side="left", padx=15)
-
-    def run(self):
-        self.mainloop()
+        if not diagnostic_ok:
+            logger.warning("⚠️ Problemas detectados en el sistema")
+            logger.info("💡 Opciones:")
+            logger.info("   - python main.py --force-launch  (forzar lanzamiento)")
+            logger.info("   - python main.py --web           (interfaz web)")
+            logger.info("   - python setup.py               (configurar sistema)")
+            
+            # Intentar web como fallback
+            user_input = input("\n¿Intentar lanzar interfaz web? [Y/n]: ")
+            if user_input.lower() != 'n':
+                return 0 if launch_web_app() else 1
+            else:
+                return 1
+    
+    # Lanzar aplicación desktop
+    logger.info("🖥️ Iniciando aplicación desktop...")
+    success = launch_desktop_app(ui_class, config, args.force_launch)
+    
+    if not success:
+        logger.error("❌ Fallo al iniciar aplicación desktop")
+        logger.info("💡 Intenta: python main.py --web")
+        return 1
+    
+    return 0
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    app = MedStudyMainWindow()
-    app.run()
+    try:
+        exit_code = main()
+        sys.exit(exit_code)
+    except KeyboardInterrupt:
+        print("\n👋 Aplicación interrumpida por el usuario")
+        sys.exit(0)
+    except Exception as e:
+        logger = logging.getLogger('MedStudy.Main')
+        logger.error(f"💥 Error crítico: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
