@@ -1,676 +1,206 @@
 """
-MedStudy Pro - Main Window (Versión Funcional Integrada)
-Combina la interfaz principal con ChatTutorPanel y componentes del sistema
+MedStudy Pro - Main Window (Rediseño Profesional)
+Interfaz principal de la aplicación con un diseño moderno y médico.
+Utiliza componentes modulares para construir la UI.
 """
 
 import customtkinter as ctk
 import logging
-from typing import Dict, Any, Optional
 import sys
 from pathlib import Path
 
-# Agregar el directorio raíz al path si no está
+# Agregar el directorio raíz al path para importaciones correctas
 project_root = Path(__file__).parent.parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# Importaciones del sistema
-try:
-    from app.ui.components.chat_tutor_manager import ChatTutorPanel
-    from core.llm_manager import LLMManager
-    from core.database import DatabaseManager
-except ImportError as e:
-    print(f"Warning: Could not import some components: {e}")
-    ChatTutorPanel = None
-    LLMManager = None
-    DatabaseManager = None
+# --- Importaciones de Componentes y Sistema ---
+from app.config import config
+from app.ui.components.medical_typography import MedicalTypography
+from app.ui.components.medical_cards import MedicalStatsCard, MedicalTopicCard, MedicalContentCard
+from app.ui.components.medical_indicators import SystemStatusIndicator, MedicalProgressRing, MedicalLoadingSpinner
 
-# Medical Color Palette
-PRIMARY_COLOR = "#1E3A8A"
-SUCCESS_COLOR = "#10B981"
-ACCENT_COLOR = "#06B6D4"
-BACKGROUND_COLOR = "#FEFCF9"
-TEXT_COLOR = "#1F2937"
-BORDER_COLOR = "#E5E7EB"
-
-# Store colors in a dictionary for easier passing
-APP_COLORS = {
-    "PRIMARY_COLOR": PRIMARY_COLOR,
-    "SUCCESS_COLOR": SUCCESS_COLOR,
-    "ACCENT_COLOR": ACCENT_COLOR,
-    "BACKGROUND_COLOR": BACKGROUND_COLOR,
-    "TEXT_COLOR": TEXT_COLOR,
-    "BORDER_COLOR": BORDER_COLOR,
-}
-
+# --- Ventana Principal ---
 class MedStudyMainWindow(ctk.CTk):
-    """Main application window for MedStudy Pro - Versión Integrada Funcional"""
+    """Ventana principal de MedStudy Pro con diseño profesional."""
 
-    def __init__(self, config=None, database=None):
+    def __init__(self, config_obj=config):
         super().__init__()
         
-        self.config = config
-        self.database = database
-        self.logger = logging.getLogger('MedStudy.MainWindow')
-        
-        # Estado del ChatTutor
-        self.chat_tutor_panel_visible = True
-        self.chat_tutor_panel: Optional[ChatTutorPanel] = None
-        self.sessions_main_content_frame: Optional[ctk.CTkFrame] = None
-        self.chat_panel_frame: Optional[ctk.CTkFrame] = None
-        self.chat_toggle_button: Optional[ctk.CTkButton] = None
+        self.config = config_obj
+        self.typography = MedicalTypography()
+        self.colors = self.config.colors
 
-        # Configurar ventana
         self._setup_window()
-        self._setup_appearance()
-        
-        # Crear interfaz
         self._create_interface()
         
-        self.logger.info("MedStudy Pro main window initialized")
+        logging.info("MedStudy Pro professional main window initialized with modular components.")
 
     def _setup_window(self):
-        """Configurar propiedades de la ventana"""
+        """Configura las propiedades principales de la ventana."""
         self.title("🧠 MedStudy Pro - Medical Study Assistant")
         self.geometry("1400x900")
-        self.resizable(True, True)
+        self.configure(fg_color=self.colors.BACKGROUND_CREAM)
+        self.minsize(1100, 750)
         
-        # Centrar ventana
-        self.update_idletasks()
-        x = (self.winfo_screenwidth() // 2) - (1400 // 2)
-        y = (self.winfo_screenheight() // 2) - (900 // 2)
-        self.geometry(f"1400x900+{x}+{y}")
-        self.minsize(1000, 700)
-        
-        # Intentar establecer icono
         try:
-            self.iconbitmap("icon.ico")
+            self.iconbitmap(str(project_root / "assets/icon.ico"))
         except Exception as e:
-            self.logger.debug(f"No icon file found: {e}")
-
-    def _setup_appearance(self):
-        """Configurar apariencia de CustomTkinter"""
-        ctk.set_appearance_mode("Light")
-        ctk.set_default_color_theme("blue")
+            logging.debug(f"Could not load icon: {e}")
 
     def _create_interface(self):
-        """Crear la interfaz principal"""
-        # Header
+        """Crea la estructura de la interfaz principal."""
         self._create_header()
-        
-        # Tab View principal
-        self._create_tab_view()
-        
-        # Status bar
+        self._create_main_content_area()
         self._create_status_bar()
 
     def _create_header(self):
-        """Crear header con título y estado del sistema"""
-        header_frame = ctk.CTkFrame(
-            self, 
-            height=70, 
-            fg_color=PRIMARY_COLOR, 
-            corner_radius=0
-        )
-        header_frame.pack(fill="x", padx=0, pady=0)
-        header_frame.pack_propagate(False)
+        """Crea el header moderno de la aplicación."""
+        header_frame = ctk.CTkFrame(self, fg_color=self.colors.PRIMARY_BLUE, height=70, corner_radius=0)
+        header_frame.pack(fill="x", side="top")
+        header_frame.grid_columnconfigure(1, weight=1)
         
-        # Título principal
-        title_label = ctk.CTkLabel(
-            header_frame, 
-            text="🧠 MedStudy Pro", 
-            font=ctk.CTkFont(size=26, weight="bold"), 
-            text_color="white"
-        )
-        title_label.pack(side="left", padx=25, pady=15)
+        title_container = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_container.grid(row=0, column=0, padx=25, pady=15)
         
-        # Subtítulo
-        subtitle_label = ctk.CTkLabel(
-            header_frame, 
-            text="Evidence-Based Medical Learning with Local AI", 
-            font=ctk.CTkFont(size=13), 
-            text_color="#E0E7FF"
-        )
-        subtitle_label.pack(side="left", padx=(0, 25), pady=15)
+        ctk.CTkLabel(
+            title_container, text="🧠 MedStudy Pro", font=self.typography.get_font("heading_20_bold"),
+            text_color=self.colors.CLINICAL_WHITE
+        ).pack(anchor="w")
         
-        # Estado del sistema
-        status_text = "🟢 Sistema Activo" if self._check_system_health() else "🔴 Verificar Sistema"
-        status_label = ctk.CTkLabel(
-            header_frame, 
-            text=status_text, 
-            font=ctk.CTkFont(size=12), 
-            text_color="white"
-        )
-        status_label.pack(side="right", padx=25, pady=15)
+        ctk.CTkLabel(
+            title_container, text="Evidence-Based Medical Learning", font=self.typography.get_font("caption_12_normal"),
+            text_color="#DBEAFE"
+        ).pack(anchor="w")
+        
+        status_indicator = SystemStatusIndicator(header_frame, typography=self.typography, is_active=True)
+        status_indicator.grid(row=0, column=2, padx=25)
 
-    def _create_tab_view(self):
-        """Crear el sistema de tabs principal"""
-        self.tab_view = ctk.CTkTabview(
-            self, 
-            corner_radius=10, 
-            width=1380, 
-            height=750
-        )
+    def _create_main_content_area(self):
+        """Crea el área principal con el TabView."""
+        self.tab_view = ctk.CTkTabview(self, corner_radius=10, border_width=1, border_color="#E5E7EB")
+        self.tab_view.pack(expand=True, fill="both", padx=20, pady=20)
         
-        # Configurar colores del tab view
         self.tab_view.configure(
-            segmented_button_selected_color=PRIMARY_COLOR,
-            segmented_button_unselected_color=BACKGROUND_COLOR,
-            segmented_button_selected_hover_color=ACCENT_COLOR,
-            segmented_button_unselected_hover_color=ACCENT_COLOR
+            font=self.typography.get_font("button_14_bold"),
+            fg_color=self.colors.BACKGROUND_CREAM,
+            segmented_button_fg_color=self.colors.BACKGROUND_CREAM,
+            segmented_button_selected_color=self.colors.PRIMARY_BLUE,
+            segmented_button_unselected_color=self.colors.CLINICAL_WHITE,
+            segmented_button_selected_hover_color=self.colors.ACCENT_CYAN,
+            segmented_button_unselected_hover_color="#F0F9FF"
         )
         
-        # Crear tabs
-        self._create_tabs()
+        tabs = ["📊 Dashboard", "📋 Planner", "📖 Sessions", "🧪 Exams", "📈 Progress"]
+        for tab_name in tabs:
+            self.tab_view.add(tab_name)
+            self.tab_view.tab(tab_name).configure(fg_color=self.colors.CLINICAL_WHITE)
         
-        # Empaquetar tab view
-        self.tab_view.pack(expand=True, fill="both", padx=15, pady=(15, 50))
-
-    def _create_tabs(self):
-        """Crear contenido de todos los tabs"""
-        # Agregar tabs
-        self.tab_view.add("📊 Dashboard")
-        self.tab_view.add("📋 Planificador")
-        self.tab_view.add("📖 Sesiones")
-        self.tab_view.add("🧪 Exámenes")
-        self.tab_view.add("📊 Progreso")
-        
-        # Configurar contenido de cada tab
         self._setup_dashboard_tab()
         self._setup_planner_tab()
         self._setup_sessions_tab()
-        self._setup_exams_tab()
         self._setup_progress_tab()
+        self._setup_placeholder_tab("🧪 Exams", "Adaptive Exam Generator", "Crea exámenes personalizados con casos clínicos generados desde tu base de conocimiento personal (RAG).")
 
     def _setup_dashboard_tab(self):
-        """Configurar tab de Dashboard"""
-        dashboard_tab = self.tab_view.tab("📊 Dashboard")
+        """Configura el contenido del tab de Dashboard."""
+        tab = self.tab_view.tab("📊 Dashboard")
+        tab.grid_columnconfigure(0, weight=1)
         
-        # Frame de bienvenida
-        welcome_frame = ctk.CTkFrame(dashboard_tab, fg_color=BACKGROUND_COLOR)
-        welcome_frame.pack(fill="x", padx=25, pady=25)
+        ctk.CTkLabel(tab, text="Welcome to your Medical Command Center", font=self.typography.get_font("heading_24_bold"),
+                     text_color=self.colors.TEXT_DARK).grid(row=0, column=0, padx=25, pady=(25, 5), sticky="w")
         
-        # Título de bienvenida
-        ctk.CTkLabel(
-            welcome_frame, 
-            text="¡Bienvenido a tu Centro de Estudio Médico!", 
-            font=ctk.CTkFont(size=22, weight="bold"), 
-            text_color=TEXT_COLOR
-        ).pack(pady=20)
+        ctk.CTkLabel(tab, text="Here's a summary of your study progress and quick actions to get started.",
+                     font=self.typography.get_font("body_15_normal"), text_color=self.colors.TEXT_MEDIUM
+                     ).grid(row=1, column=0, padx=25, pady=(0, 25), sticky="w")
         
-        # Descripción
-        ctk.CTkLabel(
-            welcome_frame, 
-            text="Sistema basado en neurociencia cognitiva para optimizar tu aprendizaje médico", 
-            font=ctk.CTkFont(size=15), 
-            text_color="#6B7280"
-        ).pack(pady=(0, 20))
+        stats_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        stats_frame.grid(row=2, column=0, padx=15, pady=15, sticky="ew")
+        stats_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
         
-        # Grid de estadísticas
-        stats_frame = ctk.CTkFrame(dashboard_tab)
-        stats_frame.pack(fill="x", padx=25, pady=15)
-        self._create_stats_grid(stats_frame)
-        
-        # Acciones rápidas
-        actions_frame = ctk.CTkFrame(dashboard_tab)
-        actions_frame.pack(fill="x", padx=25, pady=15)
-        
-        ctk.CTkLabel(
-            actions_frame, 
-            text="Acciones Rápidas", 
-            font=ctk.CTkFont(size=18, weight="bold")
-        ).pack(pady=(20, 15))
-        
-        # Botones de acción
-        buttons_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-        buttons_frame.pack(pady=(0, 20))
-        
-        # Botón Nueva Sesión
-        ctk.CTkButton(
-            buttons_frame, 
-            text="📖 Nueva Sesión", 
-            width=200, 
-            height=45, 
-            fg_color=SUCCESS_COLOR, 
-            hover_color=ACCENT_COLOR, 
-            command=self._start_study_session,
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(side="left", padx=15)
-        
-        # Botón Crear Examen
-        ctk.CTkButton(
-            buttons_frame, 
-            text="🧪 Crear Examen", 
-            width=200, 
-            height=45, 
-            fg_color=PRIMARY_COLOR, 
-            command=self._create_exam,
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(side="left", padx=15)
-        
-        # Botón Subir PDFs
-        ctk.CTkButton(
-            buttons_frame, 
-            text="📚 Subir PDFs", 
-            width=200, 
-            height=45, 
-            fg_color=ACCENT_COLOR, 
-            command=self._upload_documents,
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(side="left", padx=15)
+        MedicalStatsCard(stats_frame, "Sessions", "12", "📖", self.colors.PRIMARY_BLUE, self.typography).grid(row=0, column=0, padx=10, sticky="nsew")
+        MedicalStatsCard(stats_frame, "Hours Studied", "4.5h", "⏱️", self.colors.ACCENT_CYAN, self.typography).grid(row=0, column=1, padx=10, sticky="nsew")
+        MedicalStatsCard(stats_frame, "MedCards", "128", "🎴", self.colors.SUCCESS_GREEN, self.typography).grid(row=0, column=2, padx=10, sticky="nsew")
+        MedicalStatsCard(stats_frame, "Current Streak", "8 days", "🔥", self.colors.WARNING_AMBER, self.typography).grid(row=0, column=3, padx=10, sticky="nsew")
 
     def _setup_planner_tab(self):
-        """Configurar tab de Planificador"""
-        planner_tab = self.tab_view.tab("📋 Planificador")
+        """Configura el tab del Planner con tarjetas de temas."""
+        tab = self.tab_view.tab("📋 Planner")
+        tab.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(tab, text="Retrospective Study Planner", font=self.typography.get_font("heading_24_bold"),
+                     text_color=self.colors.TEXT_DARK).grid(row=0, column=0, padx=25, pady=(25, 5), sticky="w")
         
-        # Contenido del planificador
-        content_frame = ctk.CTkFrame(planner_tab, fg_color=BACKGROUND_COLOR)
-        content_frame.pack(fill="both", expand=True, padx=25, pady=25)
+        topics_frame = ctk.CTkScrollableFrame(tab, fg_color="transparent")
+        topics_frame.grid(row=1, column=0, sticky="nsew", padx=15, pady=15)
+        tab.grid_rowconfigure(1, weight=1)
+        topics_frame.grid_columnconfigure(0, weight=1)
         
-        # Título
-        ctk.CTkLabel(
-            content_frame, 
-            text="📋 Planificador Retrospectivo de Estudio", 
-            font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(pady=(25, 15))
-        
-        # Descripción
-        ctk.CTkLabel(
-            content_frame, 
-            text="Sistema basado en Ali Abdaal's Spaced Repetition Spreadsheet", 
-            font=ctk.CTkFont(size=15)
-        ).pack(pady=15)
-        
-        # Estado de desarrollo
-        ctk.CTkLabel(
-            content_frame, 
-            text="🚧 Módulo en desarrollo - Próximamente disponible", 
-            font=ctk.CTkFont(size=13), 
-            text_color="#6B7280"
-        ).pack(pady=15)
+        MedicalTopicCard(topics_frame, "Glomerulonefritis", "Nefrología", 0.75, self.typography).pack(fill="x", padx=10, pady=8)
+        MedicalTopicCard(topics_frame, "Manejo de Sepsis", "Medicina Interna", 0.40, self.typography).pack(fill="x", padx=10, pady=8)
+        MedicalTopicCard(topics_frame, "Artritis Reumatoide", "Reumatología", 0.90, self.typography).pack(fill="x", padx=10, pady=8)
 
     def _setup_sessions_tab(self):
-        """Configurar tab de Sesiones con ChatTutor integrado"""
-        sessions_tab = self.tab_view.tab("📖 Sesiones")
+        """Configura el tab de Sesiones con una tarjeta de contenido y un spinner."""
+        tab = self.tab_view.tab("📖 Sessions")
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_columnconfigure(1, weight=1)
+        tab.grid_rowconfigure(0, weight=1)
         
-        # Configurar grid del tab
-        sessions_tab.grid_columnconfigure(0, weight=7)  # Área principal (70%)
-        sessions_tab.grid_columnconfigure(1, weight=0)  # Botón toggle (pequeño)
-        sessions_tab.grid_columnconfigure(2, weight=3)  # Chat panel (30%)
-        sessions_tab.grid_rowconfigure(0, weight=1)
+        sample_content = "La anemia ferropénica es la causa más común de anemia a nivel mundial...\n\nFisiopatología:\n1. Depleción de los depósitos de hierro.\n2. Eritropoyesis deficiente en hierro.\n3. Anemia microcítica hipocrómica evidente."
+        MedicalContentCard(tab, "Anemia Ferropénica: Generalidades", sample_content, self.typography).grid(row=0, column=0, sticky="nsew", padx=10, pady=15)
         
-        # Área principal de contenido
-        self.sessions_main_content_frame = ctk.CTkFrame(
-            sessions_tab, 
-            fg_color=BACKGROUND_COLOR, 
-            corner_radius=10
-        )
-        self.sessions_main_content_frame.grid(
-            row=0, column=0, sticky="nsew", padx=(15, 8), pady=15
-        )
-        
-        # Contenido del área principal
-        self._create_sessions_main_content()
-        
-        # Botón toggle para el chat
-        self.chat_toggle_button = ctk.CTkButton(
-            sessions_tab,
-            text="<" if self.chat_tutor_panel_visible else ">",
-            width=25,
-            height=60,
-            font=ctk.CTkFont(size=16, weight="bold"),
-            command=self._toggle_chat_panel,
-            fg_color=ACCENT_COLOR,
-            hover_color=PRIMARY_COLOR,
-            corner_radius=10
-        )
-        self.chat_toggle_button.grid(row=0, column=1, sticky="ns", pady=120)
-        
-        # Frame para el ChatTutorPanel
-        self.chat_panel_frame = ctk.CTkFrame(
-            sessions_tab, 
-            fg_color="transparent", 
-            corner_radius=0
-        )
-        self.chat_panel_frame.grid(
-            row=0, column=2, sticky="nsew", padx=(8, 15), pady=15
-        )
-        
-        # Crear ChatTutorPanel si está disponible
-        if ChatTutorPanel:
-            try:
-                self.chat_tutor_panel = ChatTutorPanel(
-                    self.chat_panel_frame, 
-                    config=self.config, 
-                    db_manager=self.database,
-                    app_colors=APP_COLORS
-                )
-                self.chat_tutor_panel.pack(expand=True, fill="both")
-            except Exception as e:
-                self.logger.error(f"Error creating ChatTutorPanel: {e}")
-                self._create_chat_placeholder()
-        else:
-            self._create_chat_placeholder()
-
-    def _create_sessions_main_content(self):
-        """Crear contenido principal del área de sesiones"""
-        # Título del área
-        title_label = ctk.CTkLabel(
-            self.sessions_main_content_frame,
-            text="📖 Área de Sesión de Estudio",
-            font=ctk.CTkFont(size=22, weight="bold"),
-            text_color=TEXT_COLOR
-        )
-        title_label.pack(pady=(25, 15))
-        
-        # Descripción
-        desc_label = ctk.CTkLabel(
-            self.sessions_main_content_frame,
-            text="Aquí se mostrará el contenido de estudio generado por IA\ncon Active Recall integrado y timer Pomodoro",
-            font=ctk.CTkFont(size=14),
-            text_color="#6B7280",
-            justify="center"
-        )
-        desc_label.pack(pady=15)
-        
-        # Controles de sesión
-        controls_frame = ctk.CTkFrame(self.sessions_main_content_frame)
-        controls_frame.pack(pady=25, padx=25, fill="x")
-        
-        # Input para tema
-        ctk.CTkLabel(
-            controls_frame,
-            text="Tema de estudio:",
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(pady=(15, 5))
-        
-        self.topic_entry = ctk.CTkEntry(
-            controls_frame,
-            placeholder_text="Ej: Artritis reumatoide, Insuficiencia cardíaca...",
-            font=ctk.CTkFont(size=13),
-            height=35
-        )
-        self.topic_entry.pack(pady=5, padx=15, fill="x")
-        
-        # Botón generar contenido
-        generate_btn = ctk.CTkButton(
-            controls_frame,
-            text="🚀 Generar Contenido de Estudio",
-            command=self._generate_study_content,
-            fg_color=SUCCESS_COLOR,
-            hover_color=ACCENT_COLOR,
-            font=ctk.CTkFont(size=14, weight="bold"),
-            height=40
-        )
-        generate_btn.pack(pady=20)
-
-    def _create_chat_placeholder(self):
-        """Crear placeholder si ChatTutorPanel no está disponible"""
-        placeholder = ctk.CTkFrame(self.chat_panel_frame)
-        placeholder.pack(expand=True, fill="both")
-        
-        ctk.CTkLabel(
-            placeholder,
-            text="💬 Chat Tutor\n\n🚧 Componente en desarrollo\n\nEl ChatTutorPanel se cargará\ncuando esté disponible",
-            font=ctk.CTkFont(size=14),
-            text_color="#6B7280",
-            justify="center"
-        ).pack(expand=True)
-
-    def _setup_exams_tab(self):
-        """Configurar tab de Exámenes"""
-        exams_tab = self.tab_view.tab("🧪 Exámenes")
-        
-        content_frame = ctk.CTkFrame(exams_tab, fg_color=BACKGROUND_COLOR)
-        content_frame.pack(fill="both", expand=True, padx=25, pady=25)
-        
-        ctk.CTkLabel(
-            content_frame, 
-            text="🧪 Exámenes Adaptativos", 
-            font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(pady=(25, 15))
-        
-        ctk.CTkLabel(
-            content_frame, 
-            text="45 preguntas generadas desde tu RAG personal", 
-            font=ctk.CTkFont(size=15)
-        ).pack(pady=15)
-        
-        ctk.CTkLabel(
-            content_frame, 
-            text="🚧 En desarrollo - Casos clínicos adaptativos", 
-            font=ctk.CTkFont(size=13), 
-            text_color="#6B7280"
-        ).pack(pady=15)
+        # Frame para el spinner
+        spinner_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        spinner_frame.grid(row=0, column=1, padx=10, pady=15)
+        spinner = MedicalLoadingSpinner(spinner_frame, self.typography)
+        spinner.pack(pady=50)
+        spinner.start()
 
     def _setup_progress_tab(self):
-        """Configurar tab de Progreso"""
-        progress_tab = self.tab_view.tab("📊 Progreso")
+        """Configura el tab de Progreso con anillos de progreso."""
+        tab = self.tab_view.tab("📈 Progress")
+        tab.grid_columnconfigure((0, 1, 2), weight=1)
         
-        content_frame = ctk.CTkFrame(progress_tab, fg_color=BACKGROUND_COLOR)
-        content_frame.pack(fill="both", expand=True, padx=25, pady=25)
+        ctk.CTkLabel(tab, text="Cognitive Progress Analysis", font=self.typography.get_font("heading_24_bold"),
+                     text_color=self.colors.TEXT_DARK).grid(row=0, column=0, columnspan=3, padx=25, pady=(25, 5), sticky="w")
         
-        ctk.CTkLabel(
-            content_frame, 
-            text="📊 Análisis de Progreso", 
-            font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(pady=(25, 15))
-        
-        ctk.CTkLabel(
-            content_frame, 
-            text="Analytics basados en curvas de olvido y retención", 
-            font=ctk.CTkFont(size=15)
-        ).pack(pady=15)
-        
-        ctk.CTkLabel(
-            content_frame, 
-            text="🚧 En desarrollo - Dashboard de neurociencia cognitiva", 
-            font=ctk.CTkFont(size=13), 
-            text_color="#6B7280"
-        ).pack(pady=15)
+        ring1 = MedicalProgressRing(tab, size=200, progress=82, typography=self.typography)
+        ring1.grid(row=1, column=0, pady=40)
+        ctk.CTkLabel(tab, text="Retención General", font=self.typography.get_font("heading_16_bold")).grid(row=2, column=0)
 
-    def _create_stats_grid(self, parent):
-        """Crear grid de estadísticas"""
-        grid_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        grid_frame.pack(pady=20)
-        
-        # Configurar columnas
-        for i in range(4):
-            grid_frame.grid_columnconfigure(i, weight=1)
-        
-        # Crear tarjetas de estadísticas
-        self._create_stat_card(grid_frame, "Sesiones\nCompletadas", "0", 0, SUCCESS_COLOR)
-        self._create_stat_card(grid_frame, "Horas de\nEstudio", "0h", 1, ACCENT_COLOR)
-        self._create_stat_card(grid_frame, "Tarjetas\nRevisadas", "0", 2, PRIMARY_COLOR)
-        self._create_stat_card(grid_frame, "Racha\nActual", "0 días", 3, "#F59E0B")
+        ring2 = MedicalProgressRing(tab, size=200, progress=65, typography=self.typography)
+        ring2.grid(row=1, column=1, pady=40)
+        ctk.CTkLabel(tab, text="Cardiología", font=self.typography.get_font("heading_16_bold")).grid(row=2, column=1)
 
-    def _create_stat_card(self, parent, title, value, column, color):
-        """Crear tarjeta individual de estadística"""
-        card = ctk.CTkFrame(parent, width=160, height=90, corner_radius=10)
-        card.grid(row=0, column=column, padx=12, pady=8)
-        card.grid_propagate(False)
-        
-        # Valor
-        ctk.CTkLabel(
-            card, 
-            text=value, 
-            font=ctk.CTkFont(size=22, weight="bold"), 
-            text_color=color
-        ).pack(pady=(18, 3))
-        
-        # Título
-        ctk.CTkLabel(
-            card, 
-            text=title, 
-            font=ctk.CTkFont(size=12), 
-            text_color="#6B7280"
-        ).pack()
+        ring3 = MedicalProgressRing(tab, size=200, progress=91, typography=self.typography)
+        ring3.grid(row=1, column=2, pady=40)
+        ctk.CTkLabel(tab, text="Nefrología", font=self.typography.get_font("heading_16_bold")).grid(row=2, column=2)
+
+    def _setup_placeholder_tab(self, tab_name: str, title: str, description: str):
+        """Crea contenido placeholder para los tabs no implementados."""
+        tab = self.tab_view.tab(tab_name)
+        container = ctk.CTkFrame(tab, fg_color="#F8FAFC", corner_radius=12)
+        container.pack(expand=True, fill="both", padx=25, pady=25)
+        ctk.CTkLabel(container, text="🚧", font=("Arial", 48)).pack(pady=(60, 10))
+        ctk.CTkLabel(container, text=title, font=self.typography.get_font("heading_20_bold"), text_color=self.colors.TEXT_DARK).pack(pady=5)
+        ctk.CTkLabel(container, text=description, font=self.typography.get_font("body_14_normal"), text_color=self.colors.TEXT_MEDIUM, wraplength=500).pack(pady=(0, 60))
 
     def _create_status_bar(self):
-        """Crear barra de estado"""
-        status_frame = ctk.CTkFrame(
-            self, 
-            height=35, 
-            fg_color="#F3F4F6", 
-            corner_radius=0
-        )
+        """Crea la barra de estado en la parte inferior."""
+        status_frame = ctk.CTkFrame(self, height=35, fg_color="#F8FAFC", corner_radius=0, border_width=1, border_color="#E5E7EB")
         status_frame.pack(fill="x", side="bottom")
         status_frame.pack_propagate(False)
-        
-        # Estado de componentes
-        ollama_status = "🟢 Ollama" if self._check_ollama() else "🔴 Ollama"
-        db_status = "💾 DB OK" if self.database else "💾 DB Error"
-        
-        status_text = f"{ollama_status} | {db_status} | 🧠 phi3:mini | MedStudy Pro v1.0-beta"
-        
-        ctk.CTkLabel(
-            status_frame, 
-            text=status_text, 
-            font=ctk.CTkFont(size=11), 
-            text_color="#6B7280"
-        ).pack(side="left", padx=15, pady=8)
-
-    def _toggle_chat_panel(self):
-        """Toggle la visibilidad del panel de chat"""
-        self.chat_tutor_panel_visible = not self.chat_tutor_panel_visible
-        
-        if self.chat_tutor_panel_visible:
-            # Mostrar panel
-            self.chat_panel_frame.grid(
-                row=0, column=2, sticky="nsew", padx=(8, 15), pady=15
-            )
-            self.tab_view.tab("📖 Sesiones").grid_columnconfigure(0, weight=7)
-            self.tab_view.tab("📖 Sesiones").grid_columnconfigure(2, weight=3)
-            self.chat_toggle_button.configure(text="<")
-        else:
-            # Ocultar panel
-            self.chat_panel_frame.grid_remove()
-            self.tab_view.tab("📖 Sesiones").grid_columnconfigure(0, weight=10)
-            self.tab_view.tab("📖 Sesiones").grid_columnconfigure(2, weight=0)
-            self.chat_toggle_button.configure(text=">")
-        
-        self.logger.info(f"Chat panel visibility: {'Visible' if self.chat_tutor_panel_visible else 'Hidden'}")
-
-    def _generate_study_content(self):
-        """Generar contenido de estudio"""
-        topic = self.topic_entry.get().strip()
-        if not topic:
-            # Mostrar mensaje de error
-            self._show_message("Error", "Por favor ingresa un tema de estudio")
-            return
-        
-        self.logger.info(f"Generating study content for: {topic}")
-        
-        # Mostrar mensaje de progreso
-        self._show_message("Información", f"Generando contenido para: {topic}\n\nEsto puede tomar unos momentos...")
-        
-        # TODO: Integrar con StudySessionManager cuando esté disponible
-        try:
-            if self.chat_tutor_panel and hasattr(self.chat_tutor_panel, 'set_study_context'):
-                self.chat_tutor_panel.set_study_context(f"Estudiando: {topic}")
-        except Exception as e:
-            self.logger.error(f"Error setting study context: {e}")
-
-    def _show_message(self, title: str, message: str):
-        """Mostrar mensaje al usuario"""
-        popup = ctk.CTkToplevel(self)
-        popup.title(title)
-        popup.geometry("400x200")
-        popup.transient(self)
-        popup.grab_set()
-        
-        # Centrar popup
-        popup.update_idletasks()
-        x = (popup.winfo_screenwidth() // 2) - (400 // 2)
-        y = (popup.winfo_screenheight() // 2) - (200 // 2)
-        popup.geometry(f"400x200+{x}+{y}")
-        
-        # Contenido
-        ctk.CTkLabel(
-            popup,
-            text=message,
-            font=ctk.CTkFont(size=14),
-            wraplength=350
-        ).pack(expand=True, pady=20)
-        
-        # Botón OK
-        ctk.CTkButton(
-            popup,
-            text="OK",
-            command=popup.destroy,
-            width=100
-        ).pack(pady=(0, 20))
-
-    def _check_system_health(self) -> bool:
-        """Verificar salud general del sistema"""
-        return self._check_ollama() and self.database is not None
-
-    def _check_ollama(self) -> bool:
-        """Verificar si Ollama está disponible"""
-        try:
-            import requests
-            if self.config:
-                ollama_config = self.config.get_ollama_config() if hasattr(self.config, 'get_ollama_config') else {}
-                host = ollama_config.get('host', 'http://localhost:11434')
-                response = requests.get(host, timeout=2)
-                return response.status_code == 200
-            return False
-        except Exception:
-            return False
-
-    # Métodos de acciones (placeholders por ahora)
-    def _start_study_session(self):
-        """Iniciar nueva sesión de estudio"""
-        self.logger.info("Study session requested")
-        self.tab_view.set("📖 Sesiones")  # Cambiar a tab de sesiones
-        
-    def _create_exam(self):
-        """Crear nuevo examen"""
-        self.logger.info("Exam creation requested")
-        self.tab_view.set("🧪 Exámenes")  # Cambiar a tab de exámenes
-        
-    def _upload_documents(self):
-        """Subir documentos"""
-        self.logger.info("Document upload requested")
-        # TODO: Implementar diálogo de selección de archivos
-        self._show_message("Información", "Funcionalidad de subida de documentos en desarrollo")
+        ctk.CTkLabel(status_frame, text=f"MedStudy Pro v1.0 | 🧠 Model: {self.config.get('Ollama', 'model', 'phi3:mini')} | © 2024 Dr. Cruz Migueles",
+                     font=self.typography.get_font("code_12_normal"), text_color="#6B7280").pack(side="left", padx=15)
 
     def run(self):
-        """Ejecutar la aplicación"""
-        self.logger.info("Starting MedStudy Pro GUI")
         self.mainloop()
 
-
-# Alias para compatibilidad
-MainWindow = MedStudyMainWindow
-
 if __name__ == "__main__":
-    # Testing básico
-    import sys
-    
-    # Mock config para testing
-    class MockConfig:
-        def get(self, section, key, default=None):
-            return default
-        
-        def get_ollama_config(self):
-            return {
-                'host': 'http://localhost:11434', 
-                'model': 'phi3:mini', 
-                'timeout': 60
-            }
-    
-    # Configurar logging básico
     logging.basicConfig(level=logging.INFO)
-    
-    print("🧠 MedStudy Pro - Testing Main Window")
-    print("📋 Initializing application...")
-    
-    try:
-        app = MedStudyMainWindow(config=MockConfig())
-        print("✅ Application initialized successfully")
-        print("🚀 Starting GUI...")
-        app.run()
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        sys.exit(1)
+    class MockConfig:
+        def __init__(self): from app.config import ColorScheme; self.colors = ColorScheme()
+        def get(self, s, k, f=None): return 'phi3:mini (mock)' if k == 'model' else f
+    app = MedStudyMainWindow(config_obj=MockConfig())
+    app.run()

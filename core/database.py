@@ -195,6 +195,7 @@ class DatabaseManager:
                 time_taken_seconds INTEGER DEFAULT 0,
                 score_percentage REAL DEFAULT 0.0,
                 detailed_results TEXT,
+                questions_data TEXT,
                 started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 completed_at TIMESTAMP,
                 FOREIGN KEY (plan_id) REFERENCES study_plans (plan_id)

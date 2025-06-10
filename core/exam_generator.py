@@ -44,6 +44,12 @@ class ExamQuestion:
     time_limit_seconds: int = 120
     points: int = 1
 
+    def __post_init__(self):
+        if isinstance(self.question_type, str):
+            self.question_type = QuestionType(self.question_type)
+        if isinstance(self.difficulty, str):
+            self.difficulty = QuestionDifficulty(self.difficulty)
+
 @dataclass
 class ExamResult:
     """Result of a completed exam"""
@@ -468,22 +474,37 @@ class MedicalExamGenerator:
     def _store_exam_metadata(self, exam_data: Dict[str, Any]):
         """Store exam metadata in database"""
         try:
+            # Prepare questions for JSON serialization
+            questions_to_serialize = []
+            for q_dict in exam_data['questions']:
+                serializable_q = q_dict.copy() # Start with a copy
+                if isinstance(serializable_q.get('question_type'), Enum):
+                    serializable_q['question_type'] = serializable_q['question_type'].value
+                if isinstance(serializable_q.get('difficulty'), Enum):
+                    serializable_q['difficulty'] = serializable_q['difficulty'].value
+                questions_to_serialize.append(serializable_q)
+            
+            questions_json = json.dumps(questions_to_serialize)
+
             self.database.execute_update("""
                 INSERT INTO exam_results 
-                (exam_id, plan_id, exam_type, questions_total, started_at)
-                VALUES (?, ?, ?, ?, ?)
+                (exam_id, plan_id, exam_type, questions_total, started_at, questions_data)
+                VALUES (?, ?, ?, ?, ?, ?)
             """, (
                 exam_data['exam_id'],
                 exam_data.get('plan_id'),
                 exam_data['exam_type'],
                 exam_data['questions_total'],
-                exam_data['created_at']
+                exam_data['created_at'],
+                questions_json
             ))
             
             self.logger.info(f"Stored exam metadata: {exam_data['exam_id']}")
             
         except Exception as e:
             self.logger.error(f"Failed to store exam metadata: {e}")
+            # It might be useful to re-raise or handle more specifically if tests need it
+            raise # Re-raise to ensure test failures are clear if this path is taken
     
     def evaluate_exam(self, exam_id: str, student_answers: Dict[str, str], 
                      time_taken_seconds: int) -> ExamResult:
@@ -550,10 +571,47 @@ class MedicalExamGenerator:
         return result
     
     def _get_exam_by_id(self, exam_id: str) -> Optional[Dict[str, Any]]:
-        """Get exam data by ID"""
-        # This would typically be stored in a separate exams table
-        # For now, return None as placeholder
-        return None
+        """Get exam data by ID from the exam_results table."""
+        try:
+            query = """
+                SELECT exam_id, plan_id, exam_type, questions_total, started_at, questions_data
+                FROM exam_results
+                WHERE exam_id = ?
+            """
+            result = self.database.execute_query(query, (exam_id,))
+            
+            if result:
+                db_row = result[0]
+                
+                # Parse questions_data JSON string
+                questions = []
+                if db_row['questions_data']:
+                    try:
+                        questions = json.loads(db_row['questions_data'])
+                    except json.JSONDecodeError as e:
+                        self.logger.error(f"Error decoding questions_data JSON for exam {exam_id}: {e}")
+                        # Depending on requirements, either return None or exam_data without questions
+                        return None 
+                
+                # Reconstruct exam_data. Note: 'specialty' is not in exam_results.
+                # 'difficulty_distribution' and 'topics_covered' are also not stored directly.
+                # This reconstructed exam_data will be partial compared to the one in generate_exam.
+                exam_data = {
+                    'exam_id': db_row['exam_id'],
+                    'plan_id': db_row['plan_id'],
+                    'exam_type': db_row['exam_type'],
+                    'questions_total': db_row['questions_total'],
+                    'created_at': db_row['started_at'], # DB stores it as started_at
+                    'questions': questions,
+                    # 'specialty': db_row['specialty'], # Not available in exam_results
+                }
+                return exam_data
+            else:
+                self.logger.warning(f"Exam with ID {exam_id} not found in exam_results.")
+                return None
+        except Exception as e:
+            self.logger.error(f"Error fetching exam {exam_id} from database: {e}")
+            return None
     
     def _store_exam_results(self, result: ExamResult):
         """Store exam results in database"""
@@ -575,7 +633,7 @@ class MedicalExamGenerator:
                 datetime.now().isoformat(),
                 result.exam_id
             ))
-            
+         
         except Exception as e:
             self.logger.error(f"Failed to store exam results: {e}")
     
