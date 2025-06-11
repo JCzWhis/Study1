@@ -1,7 +1,6 @@
 """
-MedStudy Pro - LLM Manager
+MedStudy Pro - LLM Manager CORREGIDO
 Gestor especializado para IA local médica con Ollama
-Optimizado para medicina interna y reumatología
 """
 
 import logging
@@ -16,7 +15,7 @@ import psutil
 from pathlib import Path
 
 class LLMManager:
-    """Gestor de modelos de IA local especializados en medicina"""
+    """Gestor de modelos de IA local especializados en medicina - VERSIÓN CORREGIDA"""
     
     def __init__(self, config):
         self.config = config
@@ -84,27 +83,6 @@ class LLMManager:
             5. Recomienda manejo inicial
             
             Mantén un enfoque sistemático y educativo.""",
-            
-            "differential": """Proporciona un diagnóstico diferencial completo para:
-
-            ESTRUCTURA:
-            1. Diagnósticos más probables (top 3)
-            2. Diagnósticos a considerar
-            3. Diagnósticos menos probables pero importantes
-            4. Red flags que requieren atención inmediata
-            
-            Para cada diagnóstico incluye criterios diagnósticos relevantes.""",
-            
-            "pharmacology": """Como especialista, proporciona información farmacológica completa:
-
-            INCLUYE:
-            - Mecanismo de acción
-            - Indicaciones en medicina interna/reumatología
-            - Dosificación típica
-            - Contraindicaciones importantes
-            - Interacciones relevantes
-            - Monitoreo requerido
-            - Efectos adversos principales""",
             
             "teaching": """Actúa como profesor de medicina interna. Explica este concepto de manera didáctica:
 
@@ -462,7 +440,7 @@ class LLMManager:
     
     def chat(self, messages: List[Dict] = None, message: str = "", context: List[Dict] = None, 
              chat_type: str = "general", stream: bool = False) -> Union[str, Iterator[str]]:
-        """Chat principal con contexto médico - Interfaz unificada"""
+        """Chat principal con contexto médico - Interfaz unificada CORREGIDA"""
         
         if not self.is_ready and not self.ensure_ready():
             raise RuntimeError("Ollama no está listo para el chat")
@@ -489,30 +467,124 @@ class LLMManager:
             raise
     
     def _build_messages_prompt(self, messages: List[Dict], chat_type: str) -> str:
-        """Construye prompt desde lista de mensajes (formato OpenAI)"""
+        """Construye prompt desde lista de mensajes (formato OpenAI) - CORREGIDO"""
         system_prompt = self._get_system_prompt(chat_type)
-        prompt_parts = [system_prompt]
+        prompt_parts = []
+        
+        # Añadir prompt del sistema
+        if system_prompt:
+            prompt_parts.append(system_prompt)
         
         for msg in messages:
             role = msg.get("role", "user")
             content = msg.get("content", "")
             
+            if not content:  # Saltear mensajes vacíos
+                continue
+                
             if role == "system":
-                continue  # Ya incluido
+                continue  # Ya incluido arriba
             elif role == "user":
                 prompt_parts.append(f"\nHumano: {content}")
             elif role == "assistant":
                 prompt_parts.append(f"\nAsistente: {content}")
         
         # Asegurar que termine con prompt para asistente
-        if not prompt_parts[-1].startswith("\nAsistente:"):
+        if not prompt_parts or not prompt_parts[-1].startswith("\nAsistente:"):
             prompt_parts.append("\nAsistente:")
         
         return "\n".join(prompt_parts)
     
     def _get_system_prompt(self, chat_type: str) -> str:
         """Obtiene prompt del sistema según tipo de chat"""
-        prompts = {
-            "general": self.medical_prompts["system_base"],
-            "case_study": self.medical_prompts["case_study"]}
+        return self.medical_prompts.get(chat_type, self.medical_prompts["system_base"])
+    
+    def _build_chat_prompt(self, system_prompt: str, message: str, context: List[Dict] = None) -> str:
+        """Construye prompt completo para chat"""
+        prompt_parts = [system_prompt]
+        
+        # Añadir contexto si existe
+        if context:
+            for ctx_msg in context[-10:]:  # Últimos 10 mensajes
+                role = ctx_msg.get("role", "user")
+                content = ctx_msg.get("content", "")
+                if content:
+                    if role == "user":
+                        prompt_parts.append(f"\nHumano: {content}")
+                    elif role == "assistant":
+                        prompt_parts.append(f"\nAsistente: {content}")
+        
+        # Añadir mensaje actual
+        prompt_parts.append(f"\nHumano: {message}")
+        prompt_parts.append("\nAsistente:")
+        
+        return "\n".join(prompt_parts)
+    
+    def _stream_chat(self, prompt: str) -> Iterator[str]:
+        """Chat con streaming"""
+        try:
+            response = requests.post(
+                f"{self.host}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": True,
+                    "options": {
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                        "max_tokens": 1000
+                    }
+                },
+                stream=True,
+                timeout=self.timeout
+            )
+            
+            if response.status_code != 200:
+                raise RuntimeError(f"Ollama API error: {response.status_code}")
+            
+            for line in response.iter_lines():
+                if line:
+                    try:
+                        data = json.loads(line)
+                        if 'response' in data:
+                            yield data['response']
+                        if data.get('done', False):
+                            break
+                    except json.JSONDecodeError:
+                        continue
+                        
+        except Exception as e:
+            self.logger.error(f"Error en stream chat: {e}")
+            yield f"Error: {str(e)}"
+    
+    def _single_chat(self, prompt: str) -> str:
+        """Chat sin streaming"""
+        try:
+            response = requests.post(
+                f"{self.host}/api/generate",
+                json={
+                    "model": self.model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.7,
+                        "top_p": 0.9,
+                        "max_tokens": 1000
+                    }
+                },
+                timeout=self.timeout
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get('response', '')
+            else:
+                raise RuntimeError(f"Ollama API error: {response.status_code}")
+                
+        except Exception as e:
+            self.logger.error(f"Error en single chat: {e}")
+            return f"Error: {str(e)}"
+
+# Export main class
+__all__ = ['LLMManager']
             

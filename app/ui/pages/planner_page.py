@@ -1,5 +1,5 @@
 """
-MedStudy Pro - Study Planner Page CORREGIDO
+MedStudy Pro - Study Planner Page
 Página funcional para crear y gestionar planes de estudio médico
 """
 
@@ -42,9 +42,9 @@ except ImportError:
         OPTIONAL = "optional"
 
 class StudyPlannerPage(ctk.CTkFrame):
-    """Página principal del planificador de estudio - CORREGIDA"""
+    """Página principal del planificador de estudio"""
     
-    def __init__(self, parent, config, db_manager):
+    def __init__(self, parent, config=None, db_manager=None):
         super().__init__(parent)
         self.config = config
         self.db_manager = db_manager
@@ -67,13 +67,13 @@ class StudyPlannerPage(ctk.CTkFrame):
             "BLUE": "#3B82F6"
         }
         
-        # Initialize planner - CORREGIDO
+        # Initialize planner
         self.planner = None
         if PLANNER_AVAILABLE and db_manager:
             try:
                 self.planner = RetrospectiveStudyPlanner(db_manager)
             except Exception as e:
-                print(f"Error inicializando planner: {e}")
+                print(f"Error initializing planner: {e}")
         
         # State
         self.current_plan_id = None
@@ -414,7 +414,7 @@ class StudyPlannerPage(ctk.CTkFrame):
                 self._create_topic_widget(topic, i)
                 
     def _create_new_plan(self):
-        """Crea un nuevo plan de estudio - CORREGIDO"""
+        """Crea un nuevo plan de estudio"""
         # Validate inputs
         title = self.plan_title_entry.get().strip()
         if not title:
@@ -457,7 +457,7 @@ class StudyPlannerPage(ctk.CTkFrame):
                 self._load_existing_plans()
                 
             else:
-                # Fallback without planner
+                # Fallback without database
                 plan_data = {
                     "id": f"plan_{uuid.uuid4().hex[:12]}",
                     "title": title,
@@ -474,15 +474,17 @@ class StudyPlannerPage(ctk.CTkFrame):
             messagebox.showerror("Error", f"Error creando plan: {str(e)}")
             
     def _load_existing_plans(self):
-        """Carga los planes existentes - CORREGIDO"""
+        """Carga los planes existentes"""
         # Clear current plans
         for widget in self.plans_scroll.winfo_children():
             widget.destroy()
             
-        if self.planner and self.db_manager:
+        if self.db_manager:
             try:
-                # Get all plans using the planner
-                plans = self.planner.get_all_study_plans()
+                # Get all plans
+                plans = self.db_manager.execute_query(
+                    "SELECT * FROM study_plans ORDER BY created_at DESC"
+                )
                 
                 if plans:
                     self.empty_plans_label.pack_forget()
@@ -502,7 +504,7 @@ class StudyPlannerPage(ctk.CTkFrame):
             self.empty_plans_label.pack(pady=20)
             
     def _create_plan_widget(self, plan_data: Dict, index: int):
-        """Crea un widget para mostrar un plan - CORREGIDO"""
+        """Crea un widget para mostrar un plan"""
         plan_frame = ctk.CTkFrame(self.plans_scroll)
         plan_frame.pack(fill="x", pady=5)
         
@@ -529,30 +531,21 @@ class StudyPlannerPage(ctk.CTkFrame):
         )
         specialty_label.pack(side="right", padx=5)
         
-        # Topics count and progress
-        topics_text = f"{plan_data.get('total_topics', 0)} temas"
-        progress = plan_data.get('progress_percentage', 0)
-        
+        # Topics count
+        try:
+            topics = json.loads(plan_data['topics'])
+            topics_text = f"{len(topics)} temas"
+        except:
+            topics_text = "Sin temas"
+            
         info_label = ctk.CTkLabel(
             plan_frame,
-            text=f"{topics_text} • {progress:.1f}% completado",
+            text=topics_text,
             font=ctk.CTkFont(size=12),
             text_color=self.colors["TEXT_MEDIUM"],
             anchor="w"
         )
         info_label.pack(fill="x", padx=15, pady=(0, 5))
-        
-        # Due today indicator
-        due_today = plan_data.get('topics_due_today', 0)
-        if due_today > 0:
-            due_label = ctk.CTkLabel(
-                plan_frame,
-                text=f"⏰ {due_today} temas para estudiar hoy",
-                font=ctk.CTkFont(size=11),
-                text_color=self.colors["WARNING"],
-                anchor="w"
-            )
-            due_label.pack(fill="x", padx=15, pady=(0, 5))
         
         # Actions
         actions_frame = ctk.CTkFrame(plan_frame, fg_color="transparent")
@@ -577,11 +570,11 @@ class StudyPlannerPage(ctk.CTkFrame):
         study_btn.pack(side="left")
         
     def _view_plan_details(self, plan_data: Dict):
-        """Muestra los detalles de un plan - CORREGIDO"""
+        """Muestra los detalles de un plan"""
         # Create details window
         details_window = ctk.CTkToplevel(self)
         details_window.title(f"Detalles: {plan_data['title']}")
-        details_window.geometry("900x700")
+        details_window.geometry("800x600")
         
         # Content
         content_frame = ctk.CTkScrollableFrame(details_window)
@@ -594,60 +587,40 @@ class StudyPlannerPage(ctk.CTkFrame):
             font=ctk.CTkFont(size=20, weight="bold")
         ).pack(anchor="w", pady=(0, 10))
         
-        # Stats overview
-        stats_frame = ctk.CTkFrame(content_frame)
-        stats_frame.pack(fill="x", pady=(0, 20))
-        
-        # Progress info
-        progress_info = f"""📊 Progreso General: {plan_data.get('progress_percentage', 0):.1f}%
-📚 Total de temas: {plan_data.get('total_topics', 0)}
-⏰ Para estudiar hoy: {plan_data.get('topics_due_today', 0)}
-🎯 Nivel de dominio: {plan_data.get('mastery_level', 'principiante').title()}"""
-        
+        # Topics with confidence levels
         ctk.CTkLabel(
-            stats_frame,
-            text=progress_info,
-            font=ctk.CTkFont(size=12),
-            justify="left"
-        ).pack(padx=15, pady=15)
+            content_frame,
+            text="Temas y Niveles de Confianza:",
+            font=ctk.CTkFont(size=16, weight="bold")
+        ).pack(anchor="w", pady=(20, 10))
         
-        # Topics with confidence levels - solo si tenemos el planner
-        if self.planner:
-            ctk.CTkLabel(
-                content_frame,
-                text="Temas y Niveles de Confianza:",
-                font=ctk.CTkFont(size=16, weight="bold")
-            ).pack(anchor="w", pady=(20, 10))
+        try:
+            topics = json.loads(plan_data['topics'])
             
-            try:
-                # Get detailed plan info
-                plan_details = self.planner.get_study_plan(plan_data['plan_id'])
+            # Get confidence levels if available
+            if self.db_manager:
+                topic_details = self.db_manager.execute_query(
+                    """SELECT name, confidence_level, last_studied 
+                       FROM study_topics 
+                       WHERE plan_id = ?""",
+                    (plan_data['plan_id'],)
+                )
                 
-                if plan_details and 'topics' in plan_details:
-                    for topic in plan_details['topics']:
-                        self._create_topic_detail_widget(content_frame, {
-                            'name': topic.name,
-                            'confidence_level': topic.confidence_level.value,
-                            'last_studied': topic.last_studied.isoformat() if topic.last_studied else None,
-                            'times_studied': topic.times_studied
-                        })
-                else:
-                    ctk.CTkLabel(
-                        content_frame,
-                        text="No se pudieron cargar los detalles de los temas.",
-                        font=ctk.CTkFont(size=12),
-                        text_color=self.colors["TEXT_MEDIUM"]
-                    ).pack(pady=10)
+                for topic_data in topic_details:
+                    self._create_topic_detail_widget(content_frame, topic_data)
+            else:
+                # Demo mode
+                for topic in topics:
+                    demo_data = {
+                        'name': topic,
+                        'confidence_level': 'red',
+                        'last_studied': None
+                    }
+                    self._create_topic_detail_widget(content_frame, demo_data)
                     
-            except Exception as e:
-                print(f"Error showing topic details: {e}")
-                ctk.CTkLabel(
-                    content_frame,
-                    text=f"Error cargando detalles: {str(e)}",
-                    font=ctk.CTkFont(size=12),
-                    text_color=self.colors["ERROR"]
-                ).pack(pady=10)
-                
+        except Exception as e:
+            print(f"Error showing topics: {e}")
+            
     def _create_topic_detail_widget(self, parent, topic_data: Dict):
         """Crea widget para mostrar detalle de un tema"""
         topic_frame = ctk.CTkFrame(parent)
@@ -670,66 +643,33 @@ class StudyPlannerPage(ctk.CTkFrame):
         confidence_frame = ctk.CTkFrame(topic_frame, fg_color=color, width=20, height=20)
         confidence_frame.grid(row=0, column=1, padx=10)
         
-        # Confidence text
-        confidence_text = {
-            'red': 'No sé nada',
-            'orange': 'Sé muy poco',
-            'yellow': 'Sé algo',
-            'green': 'Lo sé bien',
-            'blue': 'Lo domino'
-        }.get(confidence, 'Desconocido')
-        
-        conf_label = ctk.CTkLabel(
-            topic_frame,
-            text=confidence_text,
-            font=ctk.CTkFont(size=11),
-            text_color=self.colors["TEXT_MEDIUM"]
-        )
-        conf_label.grid(row=0, column=2, padx=10)
-        
-        # Study info
+        # Last studied
         last_studied = topic_data.get('last_studied')
-        times_studied = topic_data.get('times_studied', 0)
-        
         if last_studied:
             try:
                 date = datetime.fromisoformat(last_studied)
                 days_ago = (datetime.now() - date).days
-                if days_ago == 0:
-                    studied_text = "Estudiado hoy"
-                elif days_ago == 1:
-                    studied_text = "Estudiado ayer"
-                else:
-                    studied_text = f"Estudiado hace {days_ago} días"
+                studied_text = f"Estudiado hace {days_ago} días"
             except:
-                studied_text = "Fecha inválida"
+                studied_text = "Nunca estudiado"
         else:
             studied_text = "Nunca estudiado"
-            
-        studied_text += f" • {times_studied} veces total"
             
         studied_label = ctk.CTkLabel(
             topic_frame,
             text=studied_text,
-            font=ctk.CTkFont(size=10),
+            font=ctk.CTkFont(size=12),
             text_color=self.colors["TEXT_MEDIUM"]
         )
-        studied_label.grid(row=0, column=3, sticky="e", padx=15)
+        studied_label.grid(row=0, column=2, sticky="e", padx=15)
         
     def _start_study_session(self, plan_data: Dict):
         """Inicia una sesión de estudio"""
-        due_topics = plan_data.get('topics_due_today', 0)
-        
-        if due_topics > 0:
-            message = f"Iniciando sesión de estudio para:\n{plan_data['title']}\n\n" + \
-                     f"Tienes {due_topics} temas para estudiar hoy.\n\n" + \
-                     "Esta función se integrará con el gestor de sesiones."
-        else:
-            message = f"Plan: {plan_data['title']}\n\n" + \
-                     "¡Excelente! No tienes temas pendientes para hoy.\n" + \
-                     "Puedes repasar temas ya estudiados o agregar nuevos temas."
-        
-        messagebox.showinfo("Sesión de Estudio", message)
+        messagebox.showinfo(
+            "Sesión de Estudio",
+            f"Iniciando sesión de estudio para:\n{plan_data['title']}\n\n" +
+            "Esta función se integrará con el gestor de sesiones."
+        )
         
     def _update_stats(self, plan_count: int):
         """Actualiza las estadísticas mostradas"""

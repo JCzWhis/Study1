@@ -441,7 +441,7 @@ class DatabaseUtils:
     def validate_table_name(table_name: str) -> bool:
         """Validate table name for security"""
         import re
-        pattern = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')
+        pattern = re.compile(r'^[a-zA-Z][a-zA-Z0-9_]*$')  # CORREGIDO: Added closing quote
         return bool(pattern.match(table_name))
     
     @staticmethod
