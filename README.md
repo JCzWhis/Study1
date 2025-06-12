@@ -2,43 +2,52 @@
 
 > **Sistema de Estudio Médico Basado en Neurociencia Cognitiva con IA Local**
 
-Aplicación desktop que implementa las mejores prácticas de aprendizaje (Active Recall, Repetición Espaciada, Interleaving) para crear un asistente de estudio médico personalizado usando IA 100% local.
+Aplicación web moderna que implementa las mejores prácticas de aprendizaje (Active Recall, Repetición Espaciada, Interleaving) para crear un asistente de estudio médico personalizado usando IA 100% local.
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
+![React](https://img.shields.io/badge/React-18+-61DAFB.svg)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg)
 ![Ollama](https://img.shields.io/badge/Ollama-phi3%3Amini-green.svg)
-![CustomTkinter](https://img.shields.io/badge/Interface-CustomTkinter-orange.svg)
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## 🚀 Instalación Rápida
+## 🚀 Instalación
 
-### **Método Automático (Recomendado)**
+### **💻 Para Usuarios Finales (Médicos/Estudiantes)**
+```bash
+# 1. Descargar instalador desde Releases
+MedStudy-Setup-v1.0.exe         # Windows
+MedStudy-v1.0.dmg               # macOS  
+MedStudy-v1.0.AppImage          # Linux
+
+# 2. Ejecutar instalador - incluye todo:
+# ✅ Python + FastAPI backend
+# ✅ React frontend compilado  
+# ✅ Ollama + modelo phi3:mini
+# ✅ ChromaDB + base de datos
+
+# 3. Doble clic en icono del escritorio
+# 🚀 Se abre automáticamente en tu navegador
+```
+
+### **🔧 Para Desarrolladores**
 ```bash
 # 1. Clona el repositorio
 git clone https://github.com/tu-usuario/Study1.git
 cd Study1
 
-# 2. Ejecuta el setup automático
-python setup.py
-
-# 3. Inicia la aplicación
-python main.py
-```
-
-### **Método Manual**
-```bash
-# 1. Instalar dependencias Python
+# 2. Desarrollo backend
+cd web/backend
+python -m venv venv && venv\Scripts\activate
 pip install -r requirements.txt
+python -m uvicorn app.main:app --reload --port 8000
 
-# 2. Instalar Ollama
-# Windows/Mac: Descargar desde https://ollama.ai
-# Linux: curl https://ollama.ai/install.sh | sh
+# 3. Desarrollo frontend  
+cd web/frontend
+npm install && npm start
 
-# 3. Iniciar Ollama y descargar modelo
+# 4. Ollama (IA local)
 ollama serve
 ollama pull phi3:mini
-
-# 4. Lanzar aplicación
-python main.py
 ```
 
 ## ✨ Características Principales
@@ -51,10 +60,10 @@ python main.py
 
 ### 📖 **Sesiones de Estudio Estructuradas**
 - **45 minutos** de contenido generado por IA desde tu propio RAG
-- **Timer Pomodoro** integrado con modo concentración
-- **Chat tutor lateral** para dudas inmediatas (phi3:mini)
-- **Quiz final** de 10 preguntas por sesión
-- **Imágenes médicas** y esquemas integrados
+- **Timer Pomodoro** integrado con seguimiento de progreso
+- **Interfaz web responsiva** optimizada para estudio médico
+- **Quiz interactivo** con evaluación de confianza por tema
+- **Contenido médico especializado** con RAG personalizable
 
 ### 📋 **Planificador Retrospectivo**
 - Sistema basado en **Ali Abdaal's Spaced Repetition Spreadsheet**
@@ -81,57 +90,88 @@ python main.py
 - **Especialistas** actualizando conocimientos
 - **Médicos** preparando certificaciones
 
-## 🖥️ **Aplicación Desktop Local**
+## 🖥️ **App Desktop Híbrida (Mejor de ambos mundos)**
 
-### **¿Por qué Desktop?**
-- ✅ **100% Privado**: Tus datos médicos nunca salen de tu PC
-- ✅ **Sin internet**: Funciona completamente offline
-- ✅ **Rendimiento**: Sin latencia de conexión
-- ✅ **Vendible**: Instalador .exe profesional
-- ✅ **Datos seguros**: Base de datos local encriptada
+### **¿Por qué Desktop + Web UI?**
+- ✅ **100% Privado**: Todo corre en tu PC, sin enviar datos afuera
+- ✅ **Sin internet**: Funciona completamente offline una vez instalado
+- ✅ **UI moderna**: Interfaz web bonita que se abre en tu navegador
+- ✅ **Fácil instalación**: Un solo .exe/.dmg que incluye todo
+- ✅ **Como Discord/Slack**: App desktop con interfaz web local
 
-### **Interfaz Principal**
+### **Experiencia de Usuario**
 ```
-┌─────────────────────────────────────────────────────────┐
-│ 🧠 MedStudy Pro - Medical Study Assistant              │
-├─────────────────────────────────┬───────────────────────┤
-│ 📊 Dashboard │ 📋 Plan │ 📖 Sesiones │ 🧪 Exámenes │ 📊 │
-├─────────────────────────────────┼───────────────────────┤
-│ 📖 ÁREA PRINCIPAL DE ESTUDIO    │ 💬 Chat Tutor IA     │
-│                                 │ ───────────────────   │
-│ # Tema: Artritis Reumatoide     │ 👋 ¿Dudas sobre      │
-│                                 │ este tema?            │
-│ [🖼️ Imagen: Articulaciones]     │                       │
-│                                 │ [🔄] [📝] [📤]        │
-│ 🧠 Active Recall en 8 min       │                       │
-│ ─────────────────────────────   │ Escribe tu pregunta:  │
-│ Progreso: ████████░░ 80%        │ [________________]    │
-│ [⏸️] [📝] [Quiz Final ▶️]        │ [Enviar] [Parar]      │
-└─────────────────────────────────┴───────────────────────┘
+1️⃣ Doble clic en MedStudy.exe
+         ↓
+2️⃣ Se inicia automáticamente:
+   ├── 🔧 Backend FastAPI (puerto 8000)  
+   ├── 🌐 Frontend React (puerto 3000)
+   └── 🌍 Se abre navegador en localhost:3000
+         ↓
+3️⃣ Interfaz web moderna en tu navegador local:
+
+┌──────────────────────────────────────────────────────────┐
+│ 🧠 MedStudy Pro - localhost:3000 (OFFLINE) 🔒           │
+├─────────────────────────────────────────────────────────┤
+│ 📊 Dashboard │ 📋 Planes │ 📖 Estudio │ 📈 Analytics    │
+├─────────────────────────────────────────────────────────┤
+│ 📖 SESIÓN DE ESTUDIO ACTIVA                             │
+│ ┌─────────────────────┐ ┌─────────────────────────────┐ │
+│ │ ⏱️ 23:45 / 45:00     │ │ 🎯 Artritis Reumatoide     │ │
+│ │ ████████░░░ 52%     │ │ Confianza: 🟡 Medio        │ │
+│ └─────────────────────┘ └─────────────────────────────┘ │
+│ 📚 Contenido generado por IA local (Ollama):            │
+│ • Patogenia: autoinmune, citocinas TNF-α               │
+│ • Criterios ACR/EULAR 2010 para diagnóstico            │  
+│ • DMARDs primera línea: MTX + ácido fólico             │
+│ 🧠 Active Recall en 7 min                              │
+│ [⏸️ Pausar] [📝 Notas] [✅ Completar] [🔄 Quiz Final]  │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ## 📋 **Comandos Disponibles**
 
-### **Diagnóstico del Sistema**
+### **Desarrollo Local**
 ```bash
-python main.py --diagnostic    # Verificar estado completo
-python main.py --config-info   # Mostrar configuración
-python setup.py               # Setup automático
+# Backend FastAPI
+cd web/backend
+python -m uvicorn app.main:app --reload --port 8000
+
+# Frontend React
+cd web/frontend
+npm start
+
+# Verificar APIs
+curl http://localhost:8000/api/health
+curl http://localhost:8000/api/docs  # Swagger docs
 ```
 
-### **Modos de Lanzamiento**
+### **Producción**
 ```bash
-python main.py                # Aplicación desktop (por defecto)
-python main.py --web          # Interfaz web (Gradio)
-python gradio_launcher.py     # Interfaz web directa
-python main.py --force-launch # Forzar inicio sin diagnósticos
+# Build frontend para producción
+cd web/frontend
+npm run build
+
+# Deploy backend
+cd web/backend
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# Con Docker (opcional)
+docker-compose up -d
 ```
 
-### **Desarrollo y Debug**
+### **Testing y Debug**
 ```bash
-python main.py --debug        # Modo debug con logs verbosos
-python quick_test.py          # Test rápido de componentes
-python main.py --setup        # Ejecutar setup desde main
+# Test backend
+cd web/backend
+python -m pytest tests/
+
+# Test RAG system
+curl http://localhost:8000/api/rag/test
+
+# Verificar Ollama
+ollama list
+ollama ps
 ```
 
 ## 🔧 **Solución de Problemas**
@@ -182,35 +222,44 @@ ollama list
 ## 📁 **Estructura del Proyecto**
 
 ```
-Study1/ (MedStudy Pro)
-├── 🚀 main.py                    # Launcher principal MEJORADO
-├── 🔧 setup.py                   # Setup automático NUEVO
-├── 📋 requirements.txt           # Dependencias completas
-├── ⚙️ config_template.ini        # Configuración plantilla
+Study1/ (MedStudy Pro - Web App)
+├── 📋 README.md                  # Documentación principal
+├── ⚙️ .env.example               # Variables de entorno ejemplo
 │
-├── 📱 app/                       # Aplicación desktop
-│   ├── ui/                       # Interfaces CustomTkinter
-│   │   ├── main_window.py        # Ventana principal FUNCIONAL
-│   │   └── components/           # Componentes reutilizables
-│   │       └── chat_tutor_manager.py # Chat lateral IA FUNCIONAL
-│   └── config.py                 # Configuración app
+├── 🌐 web/                       # Aplicación web completa
+│   ├── 🚀 backend/               # API FastAPI + IA
+│   │   ├── app/
+│   │   │   ├── main.py           # FastAPI app principal ✅
+│   │   │   ├── core/
+│   │   │   │   ├── llm_service.py        # Gestión Ollama/phi3 ✅
+│   │   │   │   └── medical_rag.py        # RAG con embeddings ✅
+│   │   │   ├── database/         # Modelos SQLite (futuro)
+│   │   │   ├── models/           # Pydantic schemas ✅
+│   │   │   └── routers/          # Endpoints organizados
+│   │   ├── requirements.txt      # Dependencias Python ✅
+│   │   └── .env                  # Config local (NO incluir en git)
+│   │
+│   └── 💻 frontend/              # React SPA moderna
+│       ├── src/
+│       │   ├── pages/
+│       │   │   ├── Dashboard.js          # Panel principal ✅
+│       │   │   ├── Plans.js              # Gestión de planes ✅
+│       │   │   ├── SimplePlanCreator.js  # Creador IA ✅
+│       │   │   ├── Study.js              # Sesiones de estudio ✅
+│       │   │   └── Analytics.js          # Métricas y progreso ✅
+│       │   ├── components/       # Componentes reutilizables
+│       │   └── App.js           # Router principal ✅
+│       ├── package.json         # Dependencias Node.js ✅
+│       └── public/              # Assets estáticos
 │
-├── 🧠 core/                      # Motor del sistema COMPLETO
-│   ├── llm_manager.py            # Gestión Ollama/phi3 ✅
-│   ├── study_session_manager.py  # Sesiones de estudio ✅
-│   ├── medical_knowledge_analyzer.py # Análisis IA ✅
-│   ├── rag_engine.py             # RAG con embeddings ✅
-│   ├── medcards_system.py        # Sistema SRS Anki-like ✅
-│   ├── exam_generator.py         # Generador de exámenes ✅
-│   ├── study_planner.py          # Planificador retrospectivo ✅
-│   ├── database.py               # SQLite + modelos ✅
-│   └── utils.py                  # Utilidades del sistema ✅
+├── 🗂️ Legacy Desktop/            # Versión desktop original
+│   ├── main.py                  # Launcher CustomTkinter
+│   ├── app/ui/                  # Interfaces desktop
+│   └── core/                    # Lógica compartida
 │
-├── 🌐 gradio_launcher.py         # Interfaz web alternativa ✅
-├── 🧪 quick_test.py              # Test rápido del sistema ✅
-├── 💾 data/                      # Datos locales (auto-creado)
-├── 📊 logs/                      # Logs del sistema (auto-creado)
-└── 🧪 tests/                     # Tests automatizados
+├── 💾 data/                     # Datos locales (auto-creado)
+├── 📊 logs/                     # Logs del sistema (auto-creado)
+└── 🧪 tests/                    # Tests automatizados
 ```
 
 ## 🎨 **Paleta de Colores**
@@ -238,27 +287,29 @@ Study1/ (MedStudy Pro)
 
 ## 🔮 **Roadmap**
 
-### **v1.0 - MVP (Actual)**
-- [x] ✅ Estructura base del proyecto completa
-- [x] ✅ Configuración Ollama + phi3:mini funcional
-- [x] ✅ Interfaz desktop CustomTkinter integrada
-- [x] ✅ Chat Tutor lateral con IA funcional
-- [x] ✅ Sistema de diagnósticos automatizado
-- [x] ✅ Setup automático completo
-- [ ] 🚧 RAG básico con PDFs (70% completo)
-- [ ] 🚧 Sesiones de estudio funcionales (80% completo)
+### **v1.0 - MVP Web (Actual)**
+- [x] ✅ FastAPI backend con endpoints completos
+- [x] ✅ React frontend con navegación funcional  
+- [x] ✅ Configuración Ollama + phi3:mini integrada
+- [x] ✅ RAG médico con ChromaDB y PDFs ✅
+- [x] ✅ Creador de planes con IA funcional
+- [x] ✅ Sistema de estudio con timer y confianza
+- [x] ✅ Upload de PDFs para enriquecer RAG
+- [x] ✅ Dashboard con métricas de progreso
 
-### **v1.1 - Beta**
-- [ ] 📋 Planificador retrospectivo UI completo
-- [ ] 🧪 Exámenes de 45 preguntas
-- [ ] 🎴 Sistema MedCards SRS UI
-- [ ] 📊 Dashboard de progreso funcional
+### **v1.1 - Funcionalidades Avanzadas**
+- [ ] 🧪 Generador de exámenes adaptativos 
+- [ ] 🎴 Sistema MedCards SRS integrado
+- [ ] 📊 Analytics avanzados con gráficos
+- [ ] 🔍 Búsqueda inteligente en RAG
+- [ ] 💾 Base de datos PostgreSQL
 
-### **v1.2 - Release**
-- [ ] 📦 Empaquetado .exe con PyInstaller
-- [ ] 🔧 Instalador automático Windows/Mac
-- [ ] 📖 Documentación completa
-- [ ] 🎯 Testing beta con médicos
+### **v1.2 - Empaquetado Desktop**
+- [ ] 📦 PyInstaller/Electron para .exe/.dmg/.appimage
+- [ ] 🚀 Auto-launcher que inicia backend+frontend+browser
+- [ ] 💾 Instalador con Ollama + phi3 incluido
+- [ ] 🔧 Auto-updater integrado
+- [ ] 🎯 Testing beta con médicos reales
 
 ### **v2.0 - Futuro**
 - [ ] 🖼️ OCR avanzado para imágenes médicas
