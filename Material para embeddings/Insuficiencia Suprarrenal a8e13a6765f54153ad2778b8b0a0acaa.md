@@ -1,0 +1,43 @@
+# Insuficiencia Suprarrenal
+
+*Pathophysiology*
+
+**Primary adrenal insufficiency (Addison disease)** refers to adrenal failure or destruction or infiltration of the adrenal glands. The most common cause worldwide is autoimmune and tuberculosis adrenalitis remains a frequent cause in the developing world. Among children, the most common cause is congenital adrenal hyperplasia. Other causes include chronic granulomatous infections (histoplasmosis, coccidiomycosis), bilateral adrenal hemorrhage (usually in the setting of sepsis with disseminated intravascular coagulation, Síndrome de Waterhouse-Friderichsen), adrenal metastases (from lung, breast, or stomach cancers), or X-linked adrenoleukodystrophy, a genetic disorder with adrenal and neurologic manifestations. Patients with acquired immunodeficiency syndrome (AIDS) often develop adrenal involvement as a result of infection with cytomegalovirus or Mycobacterium avium-intracellulare.
+
+In **primary adrenal insufficiency**, the glands themselves are destroyed so that the patient becomes deficient in **cortisol and aldosterone**. Primary adrenal insufficiency is a relatively uncommon disease seen in clinical practice. A high level of suspicion, particularly in individuals who have suggestive signs or symptoms or who are susceptible by virtue of associated autoimmune disorders or malignancies, must be maintained. The nonspecific symptoms might otherwise be missed for many years until a stressful event leads to crisis and death. Secondary and tertiary adrenal insufficiency are types of central adrenal insufficiency. **Secondary adrenal insufficiency is adrenal failure caused by a lack of ACTH stimulation from the pituitary gland.** Any disease of the pituitary can cause this, including infectious, malignant, traumatic, or autoimmune etiologies. **Tertiary adrenal insufficiency is adrenal failure from lack of corticotropin-releasing hormone (CRH)** secretion from the hypothalamus. **Chronic exogenous administration of corticosteroids preferentially suppresses the hypothalamic CRH secretion. Because of the widespread use of corticosteroids, tertiary adrenal insufficiency is relatively common.** In both **secondary and tertiary adrenal insufficiencies, the renin-angiotensin system usually is able to maintain near-normal levels of aldosterone so that the patient is deficient only in cortisol.**
+
+Clinical Presentation:
+
+Depends on the relative deficiency of glucocorticoids and mineralocorticoids, ACTH excess, and other associated disorders. An adrenal crisis may present with fatigue, reduced strength, weight loss, nausea, vomiting, abdominal pain, and hypotension.
+
+Laboratory findings may include hyponatremia, hyperkalemia, metabolic acidosis, and azotemia because of aldosterone deficiency, as well as hypoglycemia and eosinophilia resulting from cortisol deficiency.
+
+Patients with adrenal insufficiency may go into crisis when stressed by infection, trauma, or surgery. The clinical features may appear identical to those of septic shock; the only clues that the cause is adrenal disease may be the hypoglycemia (blood sugar is often elevated in sepsis) and profound hypotension that is refractory to administration of pressors but is reversed almost immediately when intravenous fluids and steroids (preferentially hydrocortisone, which has both glucocorticoid and mineralocorticoid activity) are given.
+
+Chronic adrenal insufficiency has nonspecific clinical features, such as malaise, weight loss, chronic fatigue, and gastrointestinal symptoms such as anorexia, nausea, and vomiting. A patient may have hypoglycemia and postural hypotension as a result of volume depletion. Hyperpigmentation is seen over time in primary adrenal insufficiency; this is caused by elevated melanocyte-stimulating hormone production from the pituitary as a by-product of high ACTH levels. It is typically seen as generalized hyperpigmentation of the skin and mucous membranes. It is increased in sun-exposed areas or over pressure areas, such as elbows and knees, and may be noted in skin folds. In contrast, patients with secondary adrenal insufficiency may be pale due to lack of ACTH and its by-products. Additionally, these patients maintain aldosterone production due to the renin-angiotensin system, despite the lack of cortisol production. Therefore, volume depletion and hyperkalemia are not present.
+
+Diagnosis:
+
+Cortisol levels show a diurnal variation. Cortisol levels are high in the morning and low as the day progresses, and levels should be elevated in stressful situations such as acute medical illness, surgery, or trauma. A morning plasma cortisol level less than or equal to 5 µg/dL in an acutely ill patient is definitive evidence of adrenal insufficiency. Conversely, a random cortisol level more than 18 µg/dL usually is interpreted as evidence of intact adrenal function.
+
+As in other endocrine deficiency states, the diagnostic test in this case is a stimulation test (conversely, in endocrine excess states, the diagnostic test is often a suppression test). The ACTH stimulation test is used to confirm adrenal insufficiency. Synthetic ACTH (cosyntropin) 250 µg is administered intravenously, and serum cortisol levels are measured at baseline and then at 30- and 60-minute intervals. A maximal stimulated level of more than 18 µg/dL is considered normal and indicates intact adrenal function. If cosyntropin stimulation testing indicates probable adrenal insufficiency, ACTH levels can then be measured to distinguish between primary adrenal insufficiency (high ACTH) and secondary/tertiary adrenal insufficiency (low ACTH).
+
+The insulin-glucose tolerance test is the gold standard for testing the entire hypothalamic-pituitary axis. It is based on the principle that if a stressful situation is induced (in this case, hypoglycemia), the ACTH level should rise with a consequent increase in cortisol levels.
+
+Computed tomography and magnetic resonance imaging are helpful in evaluating adrenal and pituitary disease after biochemical confirmation.
+
+Treatment:
+
+Treatment of Addisonian crisis includes intravenous 5% glucose with normal saline to correct volume depletion and hypoglycemia and administration of corticosteroid therapy. Hydrocortisone usually is given intravenously at doses of 100 mg every 6 to 8 hours, or it can be given as a bolus followed by a continuous infusion (nota: incluso se pueden dar dosis menores y ser igual de efectivas). At high doses, the hydrocortisone provides both glucocorticoid and mineralocorticoid activity. A cortisol level should be drawn before treatment to confirm the diagnosis.
+
+Causes of the acute crisis should be identified and treated; in particular, there should be a search for infection. Long-term treatment of patients with primary adrenal insufficiency includes replacement doses of glucocorticoids (eg, hydrocortisone 15–25 mg/d) and mineralocorticoids (eg, fludrocortisone 0.1–0.2 mg/d).
+
+Patients with secondary adrenal insufficiency still produce aldosterone, as mentioned previously, so only glucocorticoids must be replaced. In both cases, to prevent the long-term complications of glucocorticoid excess (diabetes, hypertension, obesity, osteoporosis, cataracts), patients should not be overtreated. Stress doses of steroids should be given for intercurrent illnesses.
+
+Patients should wear a medical alert bracelet. Stress Dose Steroids. When a patient has adrenal insufficiency or adrenal suppression due to chronic supraphysiologic corticosteroid use (equivalent of prednisone 15 mg/d for 3 weeks or longer during the prior 12 months), then stress dose steroids are needed for events such as surgery or acute illness. Hydrocortisone 100 mg IV every 6 to 8 hours is the standard dose.
+
+Thyroid Hormone and Adrenal Insufficiency.
+
+Many patients with adrenal insufficiency also have hypothyroidism. As the administration of thyroid hormone treatment increases the overall metabolic rate, the rate of urinary cortisol secretion is increased. This can exacerbate existing adrenal insufficiency. It is ideal to begin steroid therapy first, then add thyroid hormone replacement. The situation may be challenging, as adrenal insufficiency is a much less common disease than hypothyroidism, and its development can occur over a period of several years.
+
+*Toy, Eugene C.; Aisenberg, Gabriel. Case Files Internal Medicine, Sixth Edition (p. 511). McGraw Hill LLC. Edición de Kindle. 2021*

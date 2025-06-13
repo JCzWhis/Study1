@@ -1,0 +1,80 @@
+# Síndromes de sobreposición
+
+### Definición y Concepto
+
+Los **síndromes de sobreposición (SSO)** son entidades clínicas en las que un paciente **cumple simultáneamente los criterios diagnósticos de dos o más enfermedades clásicas del tejido conectivo (ETC) autoinmunes.** 
+
+Un caso paradigmático es la **enfermedad mixta del tejido conectivo (EMTC o MCTD)**, caracterizada por presencia de anti-U1-RNP, donde coexisten hallazgos de LES, EScl, AR y PM. Otros ejemplos clásicos son el *síndrome de Sharp* (superposición de LES, AR, EScl y PM), el *síndrome de Rhupus* (LES + AR), el *síndrome de Rowell* (LES cutáneo con lesiones en diana, tipo eritema multiforme), la *scleromiositis* (EScl + miositis), el *síndrome de Reynolds* (EScl sistémica asociada a colangitis biliar primaria), el *síndrome de Senear–Usher* (lupus eritomatoso cutáneo + pénfigo foliáceo) y otros más raros. En estos síndromes generalmente no se trata de entidades nuevas, sino de manifestaciones mixtas que complican el diagnóstico clásico.
+
+### Epidemiología y Prevalencia
+
+Poco frecuentes. 
+
+En estudios de esclerodermia sistémica, aproximadamente el 5–13% de los pacientes presentan diagnósticos adicionales (por ejemplo EScl+SSj, EScl+AR, EScl+PM), siendo el solapamiento con Síndrome de Sjögren lo más común. 
+
+Por su parte, el *síndrome de Rhupus* es extremadamente raro (alrededor de 2% de los pacientes con enfermedades del tejido conectivo). 
+
+En general, las mujeres se ven más afectadas (predominio femenino de 3–5:1). 
+
+Un hallazgo epidemiológico interesante es que los pacientes con EScl con sobreposición tienden a tener formas más limitadas de la enfermedad, con menor compromiso visceral grave que en los casos de EScl pura.
+
+### Manifestaciones Clínicas
+
+Combinan las de cada enfermedad implicada. 
+
+**Escleromiositis** muestra características de EScl (esclerodactilia, fenómeno de Raynaud) junto con debilidad muscular proximal y signos de dermatomiositis. 
+
+El **síndrome de Sharp** presenta artritis inflamatoria (simétrica, erosiva como la AR), fenómeno de Raynaud, miositis, acrosclerosis, disfagia y anticuerpos anti-U1 RNP como marcador característico. 
+
+En el **Rhupus** coexisten artritis erosiva reumatoide con manifestaciones lúpicas: los pacientes tienen nódulos reumatoideos, factor reumatoide y anti-CCP positivos (como en AR), y además rash malar, leucopenia o trombocitopenia, proteinuria y otros hallazgos de LES. 
+
+El **síndrome de Rowell** afecta la piel: son pacientes con lupus cutáneo (generalmente eritema discoide o LES cutáneo) que desarrollan lesiones eritematosas en diana tipo eritema multiforme, con ANA patrón moteado y a menudo anticuerpos anti-Ro/SSA. 
+
+El **síndrome de Reynolds** combina EScl (particularmente variante CREST) con colangitis biliar primaria; típicamente hay CREST (Raynaud, calcinosis, esclerodactilia, disfagia por esófago inervado, telangiectasias) junto con hepatomegalia por colangitis, anticuerpos anti-mitocondriales positivos y altos títulos de anticentromero o incluso anti-Scl70. 
+
+El **síndrome de Senear–Usher (pénfigo eritematoso)** causa erupciones cutáneas con características superpuestas de lupus eritematoso cutáneo y pénfigo foliáceo (lesiones ampollosas superficiales). En general, las manifestaciones abarcan síntomas osteomusculares (artralgias, artritis, mialgias), cutáneos (rash malar, telangiectasias, úlceras digitales), vasculares (fenómeno de Raynaud) y sistémicas (compromiso pulmonar, renal, cardíaco) propios de cada componente clínico.
+
+### Diagnóstico
+
+El diagnóstico de solapamiento es fundamentalmente clínico e inmunológico. 
+
+No existen criterios uniformes para todos. Se considera sobreposición cuando el paciente los cumple para al menos dos enfermedades. 
+
+En la práctica, se complementa con estudios de laboratorio e imágenes: anticuerpos antinucleares (ANA) inespecíficos casi siempre positivos; anticuerpos específicos (por ej. anti-U1 RNP, anti-PM/Scl, anti-centromero, etc.) que orientan el diagnóstico; EMG y biopsia muscular en sospecha de miositis; capilaroscopia periungueal, ecocardiograma y HRCT de tórax para evaluar compromiso microvascular y pulmonar. 
+
+Un estudio comparativo mostró que los pacientes con EScl-Overlap tenían patrones capilares menos típicos de esclerodermia y menor progresión capilar en el seguimiento que los con EScl aislada. En resumen, el diagnóstico requiere un alto índice de sospecha, la confirmación de cada entidad implicada y la integración de hallazgos clínicos y serológicos.
+
+### Fisiopatología
+
+La fisiopatología de los SSO combina mecanismos de autoinmunidad ya conocidos en cada enfermedad componente. En términos generales, hay una predisposición genética (HLA asociados, polimorfismos inmunológicos), factores ambientales (virus, humo, tóxicos) e inmunorregulación disfuncional (pérdida de tolerancia, apoptosis celular anómala). Los autoanticuerpos juegan un papel central: la formación de inmunocomplejos nucleoproteicos (por ejemplo, complejos con ARN o ADN nuclear) activa receptores innatos tipo Toll (TLR7/8/9) y desencadena una respuesta inflamatoria crónica. Esta estimulación persistente promueve producción de interferón tipo I y citocinas proinflamatorias, hiperactividad de linfocitos B y daño endotelial. En MCTD, por ejemplo, la autoantigenemia U1-RNP modificada por apoptosis activa TLR7/8, generando inflamación vascular y fibrosis a través de la cascada de interferón. De igual modo, los antígenos diana como la topoisomerasa I (Scl-70) en el núcleo celular, la nucleolina centromérica y las proteínas nucleolares PM/Scl o fibrilarina, cuando son atacados por autoanticuerpos, ocasionan daño directo a fibroblastos y células endoteliales. Se cree que estos anticuerpos contribuyen directamente a la fibrosis y la vasculopatía: por ejemplo, anti-Scl-70 facilita la fibrosis pulmonar y digital, anti-centromero predispone a hipertensión pulmonar, y anti-PM/Scl se asocia a inflamación muscular con daño endotelial y fibroproliferación. En conjunto, aunque la patogenia exacta no está completamente desentrañada, el resultado es un círculo vicioso de autoinmunidad activa, daño tisular progresivo y respuestas anómalas de reparación (fibrosis, calcinosis, vasculopatía crónica) propios de cada componente clínico.
+
+### Autoanticuerpos Relacionados y su Implicancia Patológica
+
+- **Anti-U1 RNP**: Marcador definitorio de EMTC y presente también en muchos SSO (p.ej. síndrome de Sharp). Forma inmunocomplejos con U1-snRNP que activan TLR. Se asocia con formas esclerodérmicas limitadas y fenotipo lupico; en la EScl incrementa el riesgo de hipertensión pulmonar, aunque con mejor pronóstico que otros anticuerpos.
+- **Anti-PM/Scl (PM75/100)**: Dirigidos contra proteínas nucleolares PM/Scl, aparecen en 3–13% de EScl (más en fenotipo limitado) y en solapamientos con miositis. Se vinculan con miositis, fibrosis pulmonar intersticial (PF) y úlceras digitales, marcando un solapamiento EScl-PM. Curiosamente, se asocian a menos incidencia de hipertensión pulmonar.
+- **Anti-Ku**: Autoanticuerpos poco frecuentes (1–5% en EScl) contra la proteína Ku (complejo 70/80kDa de reparación del ADN). Se encuentran en solapamiento EScl-miositis o EScl-AR. Clinicamente indican mayor riesgo de miopatía y enfermedad pulmonar intersticial, y ausencia de ulceras digitales o telangiectasias.
+- **Anti-centromero (ACA)**: Presentes en ~28–37% de EScl (sobre todo CREST limitado). Indican enfermedad limitada con buen pronóstico relativo. Se asocian fuertemente a hipertensión pulmonar, pero a menor tasa de fibrosis visceral. Su coexistencia suele sugerir solapamiento EScl con fenotipo limitado.
+- **Anti-topoisomerasa I (Anti-Scl-70)**: Encontrados en el 30–41% de EScl (más en difusa). Asociados a riesgo alto de fibrosis pulmonar progresiva y péptidos de actividad quimiotáctica; suelen indicar curso más grave y menor sobrevida a largo plazo.
+- **Anti-ARN polimerasa III**: En 4–19% de EScl, más en población asiática. Correlacionados con EScl difusa con alto riesgo de crisis renal esclerodérmica, gastritis atrófica antral (estómago), cáncer asociado (p.ej. mama) y actividad cutánea intensa. Su detección en un solapamiento implica vigilancia estrecha por crisis renal.
+- **Anti-Ro/SSA (52 kDa)**: Aunque clásicos de LES/SSj, aparecen en 15–19% de EScl y en SSO con componente lúpico. Se han relacionado con aumento de arritmias ventriculares complejas y riesgo de bloqueo AV neonatal (lupus neonatal), así como lesiones cutáneas fotosensibles.
+- **Factor reumatoide (FR) y anti-CCP**: Indicativos de solapamiento con componente reumatoideo (como en el Rhupus). La presencia de FR y anticuerpos anti-péptidos citrulinados (CCP) acompaña la artritis erosiva en Rhupus, distinguiéndolo de un LES aislado.
+
+En general, la detección de estos autoanticuerpos orienta el fenotipo clínico y el pronóstico (por ejemplo, ACA y anti-U1RNP indican mejor sobrevida que anti-Scl70 o anti-ARN polIII).
+
+### Tratamiento Actual
+
+El tratamiento de los síndromes de sobreposición se adapta a las manifestaciones predominantes de cada paciente. En forma general, se utilizan **corticoides sistémicos**, hidroxicloroquina y **fármacos inmunosupresores convencionales** (metotrexato, azatioprina, micofenolato, ciclofosfamida) como primera línea. Por ejemplo, la scleromiositis (EScl+PM) suele requerir esteroides + inmunosupresores (metotrexato o micofenolato) para controlar la miositis y retardar la fibrosis pulmonar. Para la artritis erosiva (como en Rhupus), se emplean antirreumáticos modificadores (metotrexato, sulfasalazina) y biológicos (por ej. rituximab si hay componente lúpico grave). En el síndrome de Sharp se han utilizado hidroxicloroquina, metotrexato y agentes biológicos (rituximab, anifrolumab) con éxito variable. Para las complicaciones orgánicas se aplican terapias específicas: **iloprost u otros prostanoides** sistémicos o bloqueadores de receptores de endotelina para el fenómeno de Raynaud y úlceras digitales, inhibidores de PDE-5 o antagonistas de endothelina para la hipertensión pulmonar (PAH), bombas de protones o antagonistas de serotonina para la esofagopatía, etc. En intersticio pulmonar activo se emplean ciclopfosfamida o micofenolato (y recientemente antifibróticos como nintedanib en ILD progresiva). Los biológicos (rituximab, tocilizumab, abatacept) y pequeños inhibidores de JAK se usan en casos refractarios basándose en estudios recientes de moderada eficacia.
+
+Además, se recomienda **tratamiento no farmacológico** de soporte: fisioterapia para mantener la función muscular y articular, rehabilitación pulmonar y educación al paciente. En Raynaud se insiste en medidas de protección térmica y se utilizan bloqueadores de canales de calcio orales (ej. nifedipino) y, de ser necesario, simpatectomía química o bloqueo simpático local. El cuidado de la piel incluye fotoprotección (en lupus) y emolientes o UVA en esclerodermia localizada. En general, el manejo integral busca controlar la inflamación sistémica y prevenir las complicaciones (como trombosis asociadas a anticuerpos antiphospholípidos en LES) mediante terapia anticoagulante profiláctica cuando corresponda.
+
+### Pronóstico
+
+El pronóstico de los SSO varía según las enfermedades combinadas y los anticuerpos presentes. Sorprendentemente, en muchos casos la sobreposición no implica peor sobrevida que las entidades puras. Por ejemplo, la *EScl con MCTD* mostró mejor supervivencia cruda a 10 años que la EScl aislada, aunque la diferencia desaparece al ajustar por edad y sexo. En general, los solapamientos con fenotipo limitado (anticuerpos anti-U1RNP o ACA) tienden a evolucionar más benignamente que aquellos con anticuerpos anti-Scl-70 o anti-ARN polimerasa III. Una cohorte iraní encontró que pacientes con EScl-Overlap tuvieron menor progresión pulmonar y cutánea a mediano plazo: no desarrollaron nuevas úlceras digitales y presentaron menos empeoramiento del score de Rodnan o fibrosis pulmonar que los pacientes con EScl limitada pura. Otros datos indican que los pacientes con solapamientos musculoesqueléticos (p.ej. AR o PM concomitante) retienen más discapacidad articular a largo plazo.
+
+Complicaciones específicas dependen de los anticuerpos: la presencia de **anti-ARN polimerasa III** señala riesgo elevado de crisis renal esclerodérmica (emergencia médica), por lo que requiere control tensional riguroso. Los anticuerpos anti-SSA/SSB (Ro/La) en SSO con rasgos lúpicos implican riesgo de enfermedad cardíaca congénita neonatal en embarazos. En solapamientos con componente lúpico severo, hay riesgo de lupus eritematoso sistémico activo (glomerulonefritis, trombosis, síndrome antifosfolípido). La hipertensión pulmonar, fibrilación ventricular o insuficiencia respiratoria pueden complicar los fenotipos con esclerodermia limitada y anti-U1RNP. En conjunto, la evidencia sugiere que los SSO tienden a una evolución menos agresiva que las manifestaciones “puras” más severas, pero requieren vigilancia estrecha de sus órganos diana.
+
+### Datos Relevantes de Evolución, Severidad y Complicaciones
+
+Los estudios comparativos resaltan diferencias clave en curso clínico. Fairley et al. analizaron 1,728 pacientes con EScl y sus sobreposiciones, hallando que la frecuencia de fibrosis pulmonar intersticial fue similar en EScl clásica, EScl–MCTD y EScl–sobreposición, pero la hipertensión pulmonar fue menor en los grupos de sobreposición. Además, la artritis sinovial y la miositis fueron más comunes en los solapamientos (p.ej. EScl con AR o con PM). Shenavandeh et al. (2023) reportaron que pacientes con EScl-Overlap tuvieron significativamente menor compromiso de órganos mayores que aquellos con EScl limitada pura. En el seguimiento (~4 años), no aparecieron nuevas úlceras digitales en el grupo overlap, y la progresión del daño pulmonar fue significativamente más lenta. Esto sugiere que, a pesar de la carga inmunológica adicional, la enfermedad sobrepuesta exhibe menor agresividad en las manifestaciones esclerodérmicas. Sin embargo, las complicaciones vasculares (hipertensión pulmonar, eventos trombóticos) y musculoesqueléticas (contracturas por fibrosis articular) continúan estando presentes y demandan control multidisciplinario. En resumen, la evolución de los SSO depende del equilibrio entre las enfermedades involucradas: los anticuerpos y la presentación fenotípica determinan la severidad y las complicaciones más probables, mientras que el curso general suele ser más benigno que la forma pura de SSc asociada a esos anticuerpos.
+
+**Bibliografía:** 1) Dourmishev LA et al. *Overlap syndromes in autoimmune connective tissue diseases*. Acta Med Bulgar **2024**;51(3):63-71. 2) Shenavandeh S et al. *Scleroderma-overlap syndromes: capillaroscopy, laboratory, and clinical manifestations and follow-up compared to scleroderma patients*. Reumatologia **2023**;61(6):448–459. 3) Fairley JL et al. *Clinical Features of Systemic Sclerosis–Mixed Connective Tissue Disease and Systemic Sclerosis Overlap Syndromes*. Arthritis Care Res **2021**;73(5):732–741. 4) Inoue Y et al. *Performance of the Revised Classification Criteria for Systemic Autoimmune Rheumatic Diseases and Their Overlap Syndromes*. Intern Med (Tokyo) **2022**;61:1947–1952. 5) Hasan G et al. *Population-based prevalence and incidence estimates of mixed connective tissue disease from the Manhattan Lupus Surveillance Program*. Rheumatology (Oxford) **2023**;62(8):2845–2849. 6) Ferrara G et al. *Towards Early Diagnosis of Mixed Connective Tissue Disease: Updated Perspectives*. Immunotargets Ther **2023**;12:201–210. 7) Didier S et al. *Autoantibodies Associated With Connective Tissue Diseases: What Meaning for Clinicians?* Front Immunol **2018**;9:774. 8) Knobler R et al. *Consensus statement on the diagnosis and treatment of sclerosing diseases of the skin, Part 1: Localized scleroderma, systemic sclerosis and overlap syndromes*. J Eur Acad Dermatol Venereol **2024**;38(7):1251–1280.
