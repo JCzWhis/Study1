@@ -41,10 +41,11 @@ start "MedStudy Backend" cmd /k "cd /d C:\reumai_tts\MedStudyPro\Study1\web\back
 echo ⏳ Esperando que el backend inicie...
 timeout 8 >nul 2>&1
 
-echo 🌐 INICIANDO FRONTEND...
+echo 🌐 INICIANDO FRONTEND LOVABLE...
 echo 📡 Puerto: 3000
+echo 🎨 Interfaz: MODERNA (React + TailwindCSS)
 echo.
-start "MedStudy Frontend" cmd /k "cd /d C:\reumai_tts\MedStudyPro\Study1\web\frontend\frontend-lovable && npm run dev"
+start "MedStudy Frontend (Lovable)" cmd /k "cd /d C:\reumai_tts\MedStudyPro\Study1\web\frontend\frontend-lovable && echo. && echo =================== && echo 🎨 FRONTEND LOVABLE MODERNO && echo =================== && echo. && npm run dev"
 
 echo ⏳ Esperando que el frontend inicie...
 timeout 10 >nul 2>&1
@@ -57,9 +58,15 @@ echo.
 echo 🎉 ¡MedStudy Pro está corriendo!
 echo.
 echo 🌐 URLs disponibles:
-echo    📱 Aplicación:  http://localhost:3000
-echo    🔧 Backend API: http://localhost:8000
-echo    📚 Docs API:    http://localhost:8000/docs
+echo    📱 Frontend LOVABLE:  http://localhost:3000
+echo    🔧 Backend API:       http://localhost:8000
+echo    📚 Docs API:          http://localhost:8000/docs
+echo.
+echo 🎨 NUEVA INTERFAZ LOVABLE incluye:
+echo    ✨ Dashboard médico moderno
+echo    🧠 Sistema de estudio con IA
+echo    📊 Analíticas visuales
+echo    🎯 Diseño especializado para medicina
 echo.
 echo 🖥️  Se han abierto 2 ventanas de terminal:
 echo    🟦 Backend (puerto 8000)
