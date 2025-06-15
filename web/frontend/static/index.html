@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedStudy Pro</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        
+        function App() {
+            const [data, setData] = useState(null);
+            
+            useEffect(() => {
+                fetch('/api/health')
+                    .then(res => res.json())
+                    .then(setData);
+            }, []);
+            
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                    <div className="bg-white p-8 rounded-lg shadow-lg max-w-md">
+                        <h1 className="text-3xl font-bold text-blue-600 mb-4">
+                            🧠 MedStudy Pro
+                        </h1>
+                        <p className="text-gray-600 mb-4">
+                            Sistema de Estudio Médico con IA Local
+                        </p>
+                        {data ? (
+                            <div className="text-green-600">
+                                ✅ Conectado al backend
+                                <br />
+                                Versión: {data.api_version}
+                            </div>
+                        ) : (
+                            <div className="text-yellow-600">
+                                ⏳ Conectando al backend...
+                            </div>
+                        )}
+                        <div className="mt-4 space-y-2">
+                            <a href="/api/docs" className="block text-blue-500 hover:underline">
+                                📚 Ver API Documentation
+                            </a>
+                            <a href="/api/dashboard" className="block text-blue-500 hover:underline">
+                                📊 Ver Dashboard Data
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

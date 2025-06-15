@@ -1,5 +1,5 @@
 """
-LLM Service for MedStudy - Ollama + Phi3 Integration with Medical RAG
+LLM Service for MedStudy - Ollama + Gemma 3-2B Integration with Medical RAG
 """
 
 import asyncio
@@ -8,19 +8,21 @@ from typing import Dict, List, Optional
 import httpx
 from datetime import datetime, timedelta
 from .medical_rag import medical_rag
+from ..config import settings
 
 
 class OllamaService:
-    """Service for interacting with Ollama and Phi3 model."""
+    """Service for interacting with Ollama and Gemma 3-2B model."""
     
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "phi3:mini"):
-        # Alternative models: "llama3.2:1b", "gemma2:2b"
-        self.base_url = base_url
-        self.model = model
-        self.client = httpx.AsyncClient(timeout=60.0)
+    def __init__(self, base_url: str = None, model: str = None):
+        # Use configuration settings
+        self.base_url = base_url or settings.OLLAMA_BASE_URL
+        self.model = model or settings.OLLAMA_MODEL
+        self.model_config = settings.get_model_config(self.model)
+        self.client = httpx.AsyncClient(timeout=self.model_config.get("timeout", 90.0))
     
     async def generate_response(self, prompt: str, system_prompt: str = None) -> str:
-        """Generate response from Phi3 model."""
+        """Generate response from Gemma 3-2B model."""
         try:
             payload = {
                 "model": self.model,
@@ -45,7 +47,7 @@ class OllamaService:
             return "Error: No se pudo generar respuesta del modelo."
     
     async def check_model_availability(self) -> bool:
-        """Check if Phi3 model is available."""
+        """Check if Gemma 3-2B model is available."""
         try:
             response = await self.client.get(f"{self.base_url}/api/tags")
             models = response.json().get("models", [])
@@ -59,11 +61,15 @@ class OllamaService:
 
 
 class MedStudyPlanGenerator:
-    """Medical study plan generator using Phi3."""
+    """Medical study plan generator using Gemma 3-2B."""
     
     def __init__(self):
         self.ollama = OllamaService()
-        self.system_prompt = """Eres un experto en educación médica y planificación de estudios. 
+        self.model_config = self.ollama.model_config
+        
+        # Dynamic system prompt based on model
+        if self.model_config.get("system_prompt_language") == "spanish":
+            self.system_prompt = """Eres un experto en educación médica y planificación de estudios. 
 Tu tarea es crear planes de estudio personalizados para estudiantes de medicina usando el método de repetición espaciada.
 
 IMPORTANTE: Responde SIEMPRE en formato JSON válido, sin texto adicional.
@@ -73,7 +79,22 @@ Principios del plan:
 - Priorizar temas según dificultad y importancia clínica
 - Incluir tiempo estimado realista por tema
 - Considerar el nivel del estudiante y fecha objetivo
-- Organizar por sistemas/especialidades médicas"""
+- Organizar por sistemas/especialidades médicas
+
+Usa contenido médico claro y basado en evidencia. Sé preciso y clínicamente exacto."""
+        else:
+            self.system_prompt = """You are an expert in medical education and study planning. Your task is to create personalized study plans for medical students using spaced repetition methodology.
+
+CRITICAL: Always respond in valid JSON format only, without any additional text or explanation.
+
+Plan principles:
+- Based on Ali Abdaal's spaced repetition method
+- Prioritize topics by difficulty and clinical importance
+- Include realistic time estimates per topic
+- Consider student level and target date
+- Organize by medical systems/specialties
+
+Use clear, evidence-based medical content. Be precise and clinically accurate."""
     
     async def generate_study_plan(
         self,
@@ -103,16 +124,16 @@ Principios del plan:
         prompt = f"""
 {rag_context}
 
-Crea un plan de estudio médico DETALLADO para:
-- Especialidad: {specialty}
-- Nivel: {level}
-- Fecha objetivo: {target_date}
-- Conocimiento actual: {json.dumps(current_knowledge, indent=2)}
-- Temas específicos: {specific_topics or 'No especificados'}
+Create a DETAILED medical study plan for:
+- Specialty: {specialty}
+- Level: {level}
+- Target date: {target_date}
+- Current knowledge: {json.dumps(current_knowledge, indent=2)}
+- Specific topics: {specific_topics or 'Not specified'}
 
-IMPORTANTE: Utiliza el contexto médico específico proporcionado arriba para crear contenido detallado y clínicamente relevante.
+IMPORTANT: Use the specific medical context provided above to create detailed, clinically relevant content.
 
-Responde con este formato JSON EXACTO:
+Respond with this EXACT JSON format:
 {{
     "plan_title": "Título del plan",
     "specialty": "{specialty}",
@@ -161,9 +182,9 @@ Responde con este formato JSON EXACTO:
         """Generate topic suggestions for a specialty."""
         
         prompt = f"""
-Lista los 15 temas más importantes para estudiar en {specialty} a nivel {level}.
-Responde SOLO con un array JSON de strings:
-["tema1", "tema2", "tema3", ...]
+List the 15 most important topics to study in {specialty} at {level} level.
+Respond ONLY with a JSON string array:
+["topic1", "topic2", "topic3", ...]
 """
         
         response = await self.ollama.generate_response(prompt, self.system_prompt)

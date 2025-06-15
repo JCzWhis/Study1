@@ -610,19 +610,68 @@ async def get_topic_suggestions(specialty: str, level: str = "estudiante"):
 async def check_llm_status():
     """Check if LLM service is available"""
     try:
+        from app.config import settings
         is_available = await llm_service.ollama.check_model_availability()
         return {
             "available": is_available,
-            "model": "phi3:mini",
-            "service": "ollama"
+            "model": llm_service.ollama.model,
+            "model_config": llm_service.ollama.model_config,
+            "service": "ollama",
+            "base_url": llm_service.ollama.base_url
         }
     except Exception as e:
         return {
             "available": False,
             "error": str(e),
-            "model": "phi3:mini",
+            "model": "gemma2:2b",
             "service": "ollama"
         }
+
+@app.get("/api/llm/models")
+async def get_available_models():
+    """Get list of available LLM models"""
+    try:
+        from app.config import settings
+        return {
+            "current_model": settings.OLLAMA_MODEL,
+            "available_models": settings.get_available_models_list()
+        }
+    except Exception as e:
+        return {
+            "error": str(e),
+            "current_model": "gemma2:2b",
+            "available_models": []
+        }
+
+@app.post("/api/llm/switch-model")
+async def switch_llm_model(model_name: str):
+    """Switch to a different LLM model"""
+    try:
+        from app.config import settings
+        
+        if not settings.is_model_available(model_name):
+            raise HTTPException(status_code=400, detail=f"Model {model_name} not supported")
+        
+        # Update the global LLM service
+        global llm_service
+        llm_service.ollama = OllamaService(model=model_name)
+        llm_service.model_config = settings.get_model_config(model_name)
+        
+        # Update system prompt for new model
+        if settings.get_model_config(model_name).get("system_prompt_language") == "spanish":
+            llm_service.system_prompt = """Eres un experto en educación médica y planificación de estudios..."""
+        else:
+            llm_service.system_prompt = """You are an expert in medical education and study planning..."""
+        
+        return {
+            "success": True,
+            "message": f"Switched to model: {model_name}",
+            "current_model": model_name,
+            "model_config": settings.get_model_config(model_name)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error switching model: {str(e)}")
 
 @app.get("/api/rag/test")
 async def test_rag_query(query: str = "insuficiencia cardiaca", specialty: str = "cardiologia"):
@@ -719,6 +768,107 @@ async def upload_pdf_to_rag(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error uploading PDF: {str(e)}")
+
+@app.post("/api/rag/bulk-load-embeddings")
+async def bulk_load_medical_embeddings():
+    """Bulk load all markdown files from 'Material para embeddings' directory"""
+    try:
+        from app.core.medical_rag import medical_rag
+        from pathlib import Path
+        
+        # Path to the embeddings directory
+        embeddings_dir = Path(__file__).parent.parent.parent.parent / "Material para embeddings"
+        
+        if not embeddings_dir.exists():
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Embeddings directory not found: {embeddings_dir}"
+            )
+        
+        # Initialize RAG system
+        if not medical_rag.is_initialized:
+            await medical_rag.initialize_knowledge_base()
+        
+        # Get current document count
+        initial_count = medical_rag.collection.count()
+        
+        # Bulk load all markdown files
+        results = await medical_rag.bulk_load_markdown_directory(str(embeddings_dir))
+        
+        # Get final document count
+        final_count = medical_rag.collection.count()
+        new_documents = final_count - initial_count
+        
+        return {
+            "success": True,
+            "message": "Bulk loading completed successfully",
+            "results": results,
+            "document_count": {
+                "initial": initial_count,
+                "final": final_count,
+                "new_documents": new_documents
+            },
+            "embeddings_directory": str(embeddings_dir)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error during bulk loading: {str(e)}")
+
+@app.get("/api/rag/collection-stats")
+async def get_rag_collection_stats():
+    """Get detailed statistics about the RAG collection"""
+    try:
+        from app.core.medical_rag import medical_rag
+        
+        if not medical_rag.is_initialized:
+            await medical_rag.initialize_knowledge_base()
+        
+        # Get collection info
+        collection = medical_rag.collection
+        total_docs = collection.count()
+        
+        # Get sample documents to analyze
+        if total_docs > 0:
+            sample_results = collection.query(
+                query_texts=["medicina"],
+                n_results=min(100, total_docs)
+            )
+            
+            # Analyze metadata
+            specialty_counts = {}
+            source_counts = {}
+            language_counts = {}
+            
+            if sample_results['metadatas']:
+                for metadata in sample_results['metadatas'][0]:
+                    specialty = metadata.get('specialty', 'unknown')
+                    source = metadata.get('source', 'unknown')
+                    language = metadata.get('language', 'unknown')
+                    
+                    specialty_counts[specialty] = specialty_counts.get(specialty, 0) + 1
+                    source_counts[source] = source_counts.get(source, 0) + 1
+                    language_counts[language] = language_counts.get(language, 0) + 1
+        else:
+            specialty_counts = {}
+            source_counts = {}
+            language_counts = {}
+        
+        return {
+            "total_documents": total_docs,
+            "is_initialized": medical_rag.is_initialized,
+            "collection_name": collection.name,
+            "specialty_distribution": specialty_counts,
+            "source_distribution": source_counts,
+            "language_distribution": language_counts,
+            "sample_analyzed": min(100, total_docs)
+        }
+        
+    except Exception as e:
+        return {
+            "error": str(e),
+            "total_documents": 0,
+            "is_initialized": False
+        }
 
 # ============ HELPER FUNCTIONS ============
 

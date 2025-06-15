@@ -1,0 +1,37 @@
+{
+  "hardware_config": {
+    "gpu_name": "GTX 1080Ti",
+    "total_vram_gb": 11.0,
+    "total_ram_gb": 32.0,
+    "cuda_version": "12.2",
+    "target_vram_usage": 0.9,
+    "target_ram_usage": 0.625,
+    "max_batch_size": 2048,
+    "precision": "float32"
+  },
+  "model_config": {
+    "text_model": "intfloat/multilingual-e5-large",
+    "image_model": "clip-ViT-L-14",
+    "text_model_size_gb": 2.24,
+    "image_model_size_gb": 1.7,
+    "embedding_dim": 1024,
+    "max_sequence_length": 512
+  },
+  "processing_config": {
+    "chunk_size": 1200,
+    "chunk_overlap": 200,
+    "min_chunk_size": 100,
+    "batch_size": 2048,
+    "max_workers": 8,
+    "supported_formats": [
+      ".md",
+      ".pdf",
+      ".docx",
+      ".html",
+      ".csv",
+      ".txt"
+    ]
+  },
+  "created_at": "2025-06-14T02:03:45.304951",
+  "version": "1.0.0"
+}

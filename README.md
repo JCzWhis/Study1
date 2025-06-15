@@ -6,7 +6,7 @@ Aplicación web moderna que implementa las mejores prácticas de aprendizaje (Ac
 
 ![React](https://img.shields.io/badge/React-18+-61DAFB.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg)
-![Ollama](https://img.shields.io/badge/Ollama-phi3%3Amini-green.svg)
+![Ollama](https://img.shields.io/badge/Ollama-gemma2%3A2b-green.svg)
 ![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
@@ -22,7 +22,7 @@ MedStudy-v1.0.AppImage          # Linux
 # 2. Ejecutar instalador - incluye todo:
 # ✅ Python + FastAPI backend
 # ✅ React frontend compilado  
-# ✅ Ollama + modelo phi3:mini
+# ✅ Ollama + modelo Gemma 3-2B
 # ✅ ChromaDB + base de datos
 
 # 3. Doble clic en icono del escritorio
@@ -47,7 +47,7 @@ npm install && npm start
 
 # 4. Ollama (IA local)
 ollama serve
-ollama pull phi3:mini
+ollama pull gemma2:2b
 ```
 
 ## ✨ Características Principales
@@ -210,10 +210,10 @@ ollama serve
 python main.py --diagnostic
 ```
 
-### **Error: Modelo phi3:mini no encontrado**
+### **Error: Modelo gemma2:2b no encontrado**
 ```bash
 # Descargar modelo específico
-ollama pull phi3:mini
+ollama pull gemma2:2b
 
 # Verificar modelos instalados
 ollama list
@@ -231,7 +231,7 @@ Study1/ (MedStudy Pro - Web App)
 │   │   ├── app/
 │   │   │   ├── main.py           # FastAPI app principal ✅
 │   │   │   ├── core/
-│   │   │   │   ├── llm_service.py        # Gestión Ollama/phi3 ✅
+│   │   │   │   ├── llm_service.py        # Gestión Ollama/Gemma 3-2B ✅
 │   │   │   │   └── medical_rag.py        # RAG con embeddings ✅
 │   │   │   ├── database/         # Modelos SQLite (futuro)
 │   │   │   ├── models/           # Pydantic schemas ✅
@@ -290,12 +290,14 @@ Study1/ (MedStudy Pro - Web App)
 ### **v1.0 - MVP Web (Actual)**
 - [x] ✅ FastAPI backend con endpoints completos
 - [x] ✅ React frontend con navegación funcional  
-- [x] ✅ Configuración Ollama + phi3:mini integrada
-- [x] ✅ RAG médico con ChromaDB y PDFs ✅
+- [x] ✅ Configuración Ollama + Gemma 3-2B integrada
+- [x] ✅ RAG médico con ChromaDB y PDFs completamente funcional
 - [x] ✅ Creador de planes con IA funcional
 - [x] ✅ Sistema de estudio con timer y confianza
 - [x] ✅ Upload de PDFs para enriquecer RAG
 - [x] ✅ Dashboard con métricas de progreso
+- [x] ✅ Embeddings médicos cargados masivamente
+- [x] ✅ Script completo para interfaz Lovable generado
 
 ### **v1.1 - Funcionalidades Avanzadas**
 - [ ] 🧪 Generador de exámenes adaptativos 
@@ -307,7 +309,7 @@ Study1/ (MedStudy Pro - Web App)
 ### **v1.2 - Empaquetado Desktop**
 - [ ] 📦 PyInstaller/Electron para .exe/.dmg/.appimage
 - [ ] 🚀 Auto-launcher que inicia backend+frontend+browser
-- [ ] 💾 Instalador con Ollama + phi3 incluido
+- [ ] 💾 Instalador con Ollama + Gemma 3-2B incluido
 - [ ] 🔧 Auto-updater integrado
 - [ ] 🎯 Testing beta con médicos reales
 

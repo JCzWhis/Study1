@@ -8,7 +8,16 @@
       "Bash(python3:*)",
       "Bash(ls:*)",
       "Bash(git config:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(python:*)",
+      "Bash(pip3 install:*)",
+      "Bash(pip install:*)",
+      "Bash(node:*)",
+      "Bash(npm --version)",
+      "Bash(npm install)",
+      "Bash(curl:*)",
+      "Bash(ollama list:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

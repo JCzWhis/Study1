@@ -15,6 +15,7 @@ from datasets import load_dataset
 import logging
 import PyPDF2
 import io
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -382,6 +383,168 @@ Utiliza este contexto médico específico para crear un plan de estudio detallad
             chunks.append(current_chunk.strip())
         
         return chunks
+    
+    async def add_markdown_content(self, markdown_content: str, filename: str, specialty: str = "general") -> bool:
+        """Add markdown content to the knowledge base."""
+        try:
+            if not markdown_content.strip():
+                logger.warning(f"Empty markdown content for file: {filename}")
+                return False
+            
+            # Extract title from filename or content
+            title = self._extract_title_from_filename(filename)
+            
+            # Clean and process markdown content
+            cleaned_content = self._clean_markdown_content(markdown_content)
+            
+            # Split content into chunks
+            chunks = self._split_text_into_chunks(cleaned_content, max_chunk_size=1000)
+            
+            documents = []
+            metadatas = []
+            ids = []
+            
+            for i, chunk in enumerate(chunks):
+                if len(chunk.strip()) > 50:  # Only meaningful chunks
+                    documents.append(chunk)
+                    metadatas.append({
+                        "source": "medical_markdown",
+                        "filename": filename,
+                        "title": title,
+                        "specialty": specialty,
+                        "chunk": i,
+                        "language": "spanish",
+                        "type": "markdown_content"
+                    })
+                    ids.append(f"md_{filename.replace(' ', '_').replace('.md', '')}_{i}")
+            
+            if documents:
+                # Add to ChromaDB in batches
+                batch_size = 100
+                for i in range(0, len(documents), batch_size):
+                    batch_docs = documents[i:i+batch_size]
+                    batch_metas = metadatas[i:i+batch_size]
+                    batch_ids = ids[i:i+batch_size]
+                    
+                    self.collection.add(
+                        documents=batch_docs,
+                        metadatas=batch_metas,
+                        ids=batch_ids
+                    )
+                
+                logger.info(f"Added {len(documents)} chunks from markdown: {filename}")
+                return True
+            
+            return False
+            
+        except Exception as e:
+            logger.error(f"Error processing markdown {filename}: {e}")
+            return False
+    
+    def _extract_title_from_filename(self, filename: str) -> str:
+        """Extract clean title from filename."""
+        # Remove the UUID at the end and .md extension
+        title = filename.replace('.md', '')
+        # Split by space and remove last part if it looks like a UUID
+        parts = title.split(' ')
+        if len(parts) > 1 and len(parts[-1]) == 32 and parts[-1].isalnum():
+            title = ' '.join(parts[:-1])
+        return title
+    
+    def _clean_markdown_content(self, content: str) -> str:
+        """Clean and normalize markdown content."""
+        # Remove excessive whitespace
+        content = re.sub(r'\n\s*\n', '\n\n', content)
+        
+        # Convert markdown headers to clean text
+        content = re.sub(r'^#{1,6}\s*', '', content, flags=re.MULTILINE)
+        
+        # Remove markdown formatting but keep structure
+        content = re.sub(r'\*\*(.*?)\*\*', r'\1', content)  # Bold
+        content = re.sub(r'\*(.*?)\*', r'\1', content)      # Italic
+        content = re.sub(r'`(.*?)`', r'\1', content)        # Code
+        
+        # Clean up bullet points
+        content = re.sub(r'^[\-\*\+]\s+', '• ', content, flags=re.MULTILINE)
+        
+        return content.strip()
+    
+    async def bulk_load_markdown_directory(self, directory_path: str) -> Dict[str, int]:
+        """Bulk load all markdown files from a directory."""
+        directory = Path(directory_path)
+        if not directory.exists():
+            logger.error(f"Directory does not exist: {directory_path}")
+            return {"error": "Directory not found", "loaded": 0}
+        
+        # Initialize knowledge base first
+        if not self.is_initialized:
+            await self.initialize_knowledge_base()
+        
+        results = {"loaded": 0, "failed": 0, "skipped": 0}
+        markdown_files = list(directory.glob("*.md"))
+        
+        logger.info(f"Found {len(markdown_files)} markdown files to process")
+        
+        for md_file in markdown_files:
+            try:
+                # Skip README files
+                if md_file.name.lower() == 'readme.md':
+                    results["skipped"] += 1
+                    continue
+                
+                # Determine specialty from filename or content
+                specialty = self._determine_specialty_from_filename(md_file.name)
+                
+                # Read file content
+                with open(md_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read()
+                
+                # Add to RAG system
+                success = await self.add_markdown_content(content, md_file.name, specialty)
+                
+                if success:
+                    results["loaded"] += 1
+                    logger.info(f"✅ Loaded: {md_file.name}")
+                else:
+                    results["failed"] += 1
+                    logger.warning(f"❌ Failed: {md_file.name}")
+                
+            except Exception as e:
+                logger.error(f"Error processing file {md_file.name}: {e}")
+                results["failed"] += 1
+        
+        logger.info(f"Bulk loading completed: {results}")
+        return results
+    
+    def _determine_specialty_from_filename(self, filename: str) -> str:
+        """Determine medical specialty from filename."""
+        filename_lower = filename.lower()
+        
+        # Specialty mappings
+        specialty_keywords = {
+            "reumatologia": ["artritis", "lupus", "vasculitis", "articular", "reumat", "espondiloartritis", 
+                           "polimialgia", "miopat", "miositis", "cristales", "osteoporosis", "biologico",
+                           "dolor", "inflamatorio"],
+            "cardiologia": ["cardiaca", "cardiolog", "coronario", "arritmia", "fibrilacion", "hipertension",
+                          "aortic", "valvular", "infarto", "angina"],
+            "endocrinologia": ["diabetes", "tiroides", "suprarrenal", "acromegalia", "hipoglicemia",
+                             "hiperglicemia", "insulina", "endocrin"],
+            "nefrologia": ["renal", "nefr", "dialisis", "glomerulo", "proteinuria", "hiponatremia",
+                          "hipokalemia", "hiperkalemia", "riñon"],
+            "hematologia": ["anemia", "leucemia", "linfoma", "trombocit", "hemolisis", "coagulacion",
+                          "hematolog", "mieloma", "hemograma", "ferritina"],
+            "infectologia": ["antibiot", "antimicrobiano", "infeccion", "vih", "tuberculosis", "microbio",
+                           "resistencia", "gram", "fungic"],
+            "neurologia": ["neurologico", "acv", "encef", "mening", "neuropat", "convulsion", "cefalea"],
+            "gastroenterologia": ["hepat", "cirrosis", "gastro", "esofag", "nutric", "disfagia"],
+            "medicina_interna": ["hospitalizado", "intensivo", "shock", "medicina interna", "general"]
+        }
+        
+        for specialty, keywords in specialty_keywords.items():
+            if any(keyword in filename_lower for keyword in keywords):
+                return specialty
+        
+        return "medicina_general"
 
 
 # Global RAG instance
