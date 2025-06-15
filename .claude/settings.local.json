@@ -17,7 +17,9 @@
       "Bash(npm install)",
       "Bash(curl:*)",
       "Bash(ollama list:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ],
     "deny": []
   }
