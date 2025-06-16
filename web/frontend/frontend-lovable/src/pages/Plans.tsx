@@ -1,222 +1,413 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Upload, BookOpen, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { 
+  Plus, 
+  Search, 
+  BookOpen, 
+  Clock, 
+  User,
+  Target,
+  Calendar,
+  TrendingUp,
+  Play,
+  Trash2,
+  Edit
+} from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import CreatePlanDialog from "@/components/CreatePlanDialog";
-import PlanCard from "@/components/PlanCard";
+import CreateStudyPlanDialog from "@/components/CreateStudyPlanDialog";
 import StatCard from "@/components/StatCard";
 
+interface StudyPlan {
+  id: string;
+  title: string;
+  specialty: string;
+  level: string;
+  duration: number;
+  sessionsPerDay: number;
+  totalSessions: number;
+  completedSessions: number;
+  progress: number;
+  description?: string;
+  createdAt: string;
+  estimatedHours: number;
+  currentDay: number;
+  status: 'active' | 'completed' | 'paused';
+}
+
 const Plans = () => {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSpecialty, setSelectedSpecialty] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const plans = [
-    {
-      title: "Reumatología Avanzada",
-      description: "Casos clínicos complejos y nuevos tratamientos",
-      progress: 75,
-      specialty: "Reumatología",
-      studyTime: "3h 45min"
-    },
-    {
-      title: "Cardiología Preventiva",
-      description: "Factores de riesgo y estrategias preventivas",
-      progress: 45,
-      specialty: "Cardiología",
-      studyTime: "2h 20min"
-    },
-    {
-      title: "Neurología Clínica",
-      description: "Diagnóstico diferencial en patologías neurológicas",
-      progress: 60,
-      specialty: "Neurología",
-      studyTime: "4h 10min"
-    },
-    {
-      title: "Endocrinología Práctica",
-      description: "Manejo integral de diabetes y tiroides",
-      progress: 30,
-      specialty: "Endocrinología",
-      studyTime: "2h 55min"
+  // Cargar planes desde localStorage o usar datos de ejemplo
+  const [plans, setPlans] = useState<StudyPlan[]>(() => {
+    try {
+      const savedPlans = localStorage.getItem('allPlans');
+      if (savedPlans) {
+        return JSON.parse(savedPlans);
+      }
+    } catch (error) {
+      console.error('Error loading plans from localStorage:', error);
     }
-  ];
+    
+    // Datos de ejemplo por defecto
+    return [
+      {
+        id: "example-1",
+        title: "Artritis Reumatoide - Manejo Integral",
+        specialty: "Reumatología",
+        level: "becado",
+        duration: 30,
+        sessionsPerDay: 2,
+        totalSessions: 60,
+        completedSessions: 45,
+        progress: 75,
+        description: "Estudio comprehensivo desde patogenia hasta tratamientos biológicos",
+        createdAt: "2024-06-01",
+        estimatedHours: 45,
+        currentDay: 23,
+        status: 'active'
+      },
+      {
+        id: "example-2", 
+        title: "Insuficiencia Cardíaca - Casos Complejos",
+        specialty: "Cardiología",
+        level: "especialista",
+        duration: 45,
+        sessionsPerDay: 1,
+        totalSessions: 45,
+        completedSessions: 20,
+        progress: 44,
+        description: "Manejo avanzado de IC con fracción de eyección preservada y reducida",
+        createdAt: "2024-05-15",
+        estimatedHours: 34,
+        currentDay: 20,
+        status: 'active'
+      }
+    ];
+  });
 
   const specialties = [
     "Todos",
+    "Medicina Interna",
     "Cardiología",
     "Neurología", 
-    "Reumatología",
+    "Gastroenterología",
     "Endocrinología",
+    "Reumatología",
     "Neumología",
-    "Gastroenterología"
+    "Nefrología"
   ];
 
   const filteredPlans = plans.filter(plan => {
     const matchesSearch = plan.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          plan.specialty.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSpecialty = selectedSpecialty === "all" || 
-                            plan.specialty.toLowerCase() === selectedSpecialty.toLowerCase();
-    return matchesSearch && matchesSpecialty;
+    const matchesSpecialty = selectedSpecialty === "all" || plan.specialty === selectedSpecialty;
+    const matchesStatus = selectedStatus === "all" || plan.status === selectedStatus;
+    
+    return matchesSearch && matchesSpecialty && matchesStatus;
   });
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'paused': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'interno': return 'bg-emerald-100 text-emerald-800';
+      case 'becado': return 'bg-blue-100 text-blue-800';
+      case 'especialista': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getLevelLabel = (level: string) => {
+    switch (level) {
+      case 'interno': return 'Interno';
+      case 'becado': return 'Becado';
+      case 'especialista': return 'Especialista';
+      default: return level;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active': return 'Activo';
+      case 'completed': return 'Completado';
+      case 'paused': return 'Pausado';
+      default: return status;
+    }
+  };
+
+  const handleCreatePlan = (planData: any) => {
+    console.log("🎯 Creando plan con datos:", planData);
+    
+    const newPlan: StudyPlan = {
+      id: Date.now().toString(), // Usar timestamp para ID único
+      title: `${planData.mainTopic} - ${planData.specialty}`,
+      specialty: planData.specialty,
+      level: planData.level,
+      duration: planData.duration,
+      sessionsPerDay: planData.sessionsPerDay,
+      totalSessions: planData.duration * planData.sessionsPerDay,
+      completedSessions: 0,
+      progress: 0,
+      description: planData.description || `Plan de estudio de ${planData.mainTopic}`,
+      createdAt: new Date().toISOString().split('T')[0],
+      estimatedHours: Math.round(planData.duration * planData.sessionsPerDay * 0.75),
+      currentDay: 1,
+      status: 'active'
+    };
+
+    console.log("📋 Plan creado:", newPlan);
+
+    try {
+      // Guardar el plan individual
+      localStorage.setItem(`plan_${newPlan.id}`, JSON.stringify({
+        ...newPlan,
+        originalData: planData
+      }));
+      console.log("💾 Plan guardado en localStorage");
+
+      // Guardar la lista completa de planes
+      const updatedPlans = [newPlan, ...plans];
+      setPlans(updatedPlans);
+      localStorage.setItem('allPlans', JSON.stringify(updatedPlans));
+      console.log("📝 Lista de planes actualizada:", updatedPlans.length);
+      
+      // Mostrar alerta de éxito
+      alert(`✅ Plan "${newPlan.title}" creado exitosamente!`);
+      
+    } catch (error) {
+      console.error("❌ Error creando plan:", error);
+      alert("Error al crear el plan. Intenta de nuevo.");
+    }
+  };
+
+  const handleOpenPlan = (planId: string) => {
+    navigate(`/plan/${planId}`);
+  };
+
+  // Estadísticas
+  const totalPlans = plans.length;
+  const activePlans = plans.filter(p => p.status === 'active').length;
+  const completedPlans = plans.filter(p => p.status === 'completed').length;
+  const totalStudyHours = plans.reduce((sum, plan) => sum + (plan.completedSessions * 0.75), 0);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-study-bg via-white to-medical-blue-50/30">
-      <div className="p-8 max-w-7xl mx-auto">
-        {/* Modern Header with gradient */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-medical-blue-800 via-medical-blue-700 to-medical-turquoise-600 rounded-2xl p-8 mb-8 shadow-lg">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="relative z-10">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2 flex items-center">
-                  📋 Planes de Estudio
-                  <Sparkles className="w-6 h-6 ml-3 text-medical-turquoise-300" />
-                </h1>
-                <p className="text-medical-blue-100 text-lg">
-                  Organiza tu aprendizaje médico con planes personalizados
-                </p>
-              </div>
-              <div className="flex space-x-3">
-                <Button 
-                  variant="outline"
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Importar PDFs
-                </Button>
-                <Button 
-                  onClick={() => setShowCreateDialog(true)}
-                  className="bg-white text-medical-blue-800 hover:bg-medical-blue-50 shadow-lg"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Crear Nuevo Plan
-                </Button>
-              </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Planes de Estudio</h1>
+          <p className="text-gray-600">Gestiona tus planes de estudio personalizados con IA</p>
+        </div>
+        <Button 
+          onClick={() => setShowCreateDialog(true)}
+          className="bg-medical-blue-600 hover:bg-medical-blue-700"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Nuevo Plan de Estudio
+        </Button>
+      </div>
+
+      {/* Estadísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Total de Planes"
+          value={totalPlans.toString()}
+          icon={BookOpen}
+          color="blue"
+        />
+        <StatCard
+          title="Planes Activos"
+          value={activePlans.toString()}
+          icon={Play}
+          color="green"
+        />
+        <StatCard
+          title="Completados"
+          value={completedPlans.toString()}
+          icon={Target}
+          color="turquoise"
+        />
+        <StatCard
+          title="Horas Estudiadas"
+          value={`${Math.round(totalStudyHours)}h`}
+          icon={Clock}
+          color="purple"
+        />
+      </div>
+
+      {/* Filtros */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar planes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            
+            <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
+              <SelectTrigger>
+                <SelectValue placeholder="Especialidad" />
+              </SelectTrigger>
+              <SelectContent>
+                {specialties.map((specialty) => (
+                  <SelectItem key={specialty} value={specialty === "Todos" ? "all" : specialty}>
+                    {specialty}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="active">Activos</SelectItem>
+                <SelectItem value="completed">Completados</SelectItem>
+                <SelectItem value="paused">Pausados</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="text-sm text-gray-600 flex items-center">
+              {filteredPlans.length} de {totalPlans} planes
             </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
 
-        {/* Modern Search and Filter Card */}
-        <Card className="mb-8 shadow-lg border-0 bg-white/70 backdrop-blur-sm">
-          <CardContent className="p-8">
-            <div className="flex flex-col sm:flex-row gap-6">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <Input
-                    placeholder="Buscar planes por título o especialidad..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 h-12 text-lg border-gray-200 focus:border-medical-turquoise-500 focus:ring-medical-turquoise-500/20"
-                  />
+      {/* Lista de Planes */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {filteredPlans.map((plan) => (
+          <Card key={plan.id} className="hover:shadow-lg transition-shadow cursor-pointer">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <CardTitle className="text-lg mb-2">{plan.title}</CardTitle>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <Badge variant="secondary">{plan.specialty}</Badge>
+                    <Badge className={getLevelColor(plan.level)}>
+                      {getLevelLabel(plan.level)}
+                    </Badge>
+                    <Badge className={getStatusColor(plan.status)}>
+                      {getStatusLabel(plan.status)}
+                    </Badge>
+                  </div>
                 </div>
               </div>
               
-              <div className="sm:w-64">
-                <Select value={selectedSpecialty} onValueChange={setSelectedSpecialty}>
-                  <SelectTrigger className="h-12 text-lg border-gray-200 focus:border-medical-turquoise-500">
-                    <SelectValue placeholder="Especialidad" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las especialidades</SelectItem>
-                    {specialties.slice(1).map((specialty) => (
-                      <SelectItem key={specialty} value={specialty.toLowerCase()}>
-                        {specialty}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {plan.description && (
+                <p className="text-sm text-gray-600 mt-2">{plan.description}</p>
+              )}
+            </CardHeader>
+
+            <CardContent className="pt-0">
+              <div className="space-y-4">
+                {/* Progreso */}
+                <div>
+                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Progreso</span>
+                    <span>{plan.completedSessions}/{plan.totalSessions} sesiones</span>
+                  </div>
+                  <Progress value={plan.progress} className="h-2" />
+                </div>
+
+                {/* Información del plan */}
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <span>{plan.duration} días</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span>{plan.sessionsPerDay}/día</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Target className="w-4 h-4 text-gray-400" />
+                    <span>Día {plan.currentDay}/{plan.duration}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="w-4 h-4 text-gray-400" />
+                    <span>{plan.estimatedHours}h estimadas</span>
+                  </div>
+                </div>
+
+                {/* Botones de acción */}
+                <div className="flex space-x-2 pt-2">
+                  <Button 
+                    onClick={() => handleOpenPlan(plan.id)}
+                    className="flex-1 bg-medical-blue-600 hover:bg-medical-blue-700"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    {plan.progress === 0 ? 'Comenzar' : 'Continuar'}
+                  </Button>
+                  <Button variant="outline" size="sm">
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Enhanced Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
-          <div className="transform hover:scale-105 transition-transform duration-200">
-            <StatCard
-              title="Planes Totales"
-              value={plans.length.toString()}
-              icon={BookOpen}
-              color="blue"
-            />
-          </div>
-          <div className="transform hover:scale-105 transition-transform duration-200">
-            <StatCard
-              title="Completados"
-              value={plans.filter(p => p.progress > 80).length.toString()}
-              icon={BookOpen}
-              color="green"
-            />
-          </div>
-          <div className="transform hover:scale-105 transition-transform duration-200">
-            <StatCard
-              title="En Progreso"
-              value={plans.filter(p => p.progress > 0 && p.progress <= 80).length.toString()}
-              icon={BookOpen}
-              color="turquoise"
-            />
-          </div>
-          <div className="transform hover:scale-105 transition-transform duration-200">
-            <StatCard
-              title="Progreso Promedio"
-              value={`${Math.round(plans.reduce((acc, p) => acc + p.progress, 0) / plans.length)}%`}
-              icon={BookOpen}
-              color="blue"
-            />
-          </div>
-        </div>
-
-        {/* Modern Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredPlans.map((plan, index) => (
-            <div 
-              key={index} 
-              className="transform hover:scale-105 transition-all duration-300 hover:shadow-xl"
-            >
-              <PlanCard
-                title={plan.title}
-                description={plan.description}
-                progress={plan.progress}
-                specialty={plan.specialty}
-                studyTime={plan.studyTime}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Enhanced No results message */}
-        {filteredPlans.length === 0 && (
-          <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-gray-50">
-            <CardContent className="p-16 text-center">
-              <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-medical-blue-100 to-medical-turquoise-100 rounded-full flex items-center justify-center">
-                <BookOpen className="w-12 h-12 text-medical-blue-600" />
-              </div>
-              <h3 className="text-2xl font-semibold text-gray-800 mb-3">No se encontraron planes</h3>
-              <p className="text-gray-600 mb-8 text-lg max-w-md mx-auto">
-                No hay planes que coincidan con tu búsqueda. Intenta con otros términos o crea un nuevo plan.
-              </p>
-              <Button 
-                onClick={() => setShowCreateDialog(true)}
-                className="bg-gradient-to-r from-medical-blue-700 to-medical-blue-800 hover:from-medical-blue-800 hover:to-medical-blue-900 text-white px-8 py-3 text-lg shadow-lg"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                Crear Primer Plan
-              </Button>
             </CardContent>
           </Card>
-        )}
-
-        {/* Create Plan Dialog */}
-        <CreatePlanDialog 
-          open={showCreateDialog}
-          onOpenChange={setShowCreateDialog}
-        />
+        ))}
       </div>
+
+      {/* Estado vacío */}
+      {filteredPlans.length === 0 && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No se encontraron planes
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || selectedSpecialty !== "all" || selectedStatus !== "all" 
+                ? "Intenta ajustar los filtros de búsqueda"
+                : "Crea tu primer plan de estudio personalizado"
+              }
+            </p>
+            {(!searchTerm && selectedSpecialty === "all" && selectedStatus === "all") && (
+              <Button 
+                onClick={() => setShowCreateDialog(true)}
+                className="bg-medical-blue-600 hover:bg-medical-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Crear Primer Plan
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Diálogo de creación */}
+      <CreateStudyPlanDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreatePlan={handleCreatePlan}
+      />
     </div>
   );
 };

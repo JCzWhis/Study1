@@ -49,7 +49,7 @@ export default {
 					600: '#0891b2',
 					700: '#0e7490',
 				},
-				'study-bg': '#fefcf9',
+				'study-bg': '#ffffff',
 				'study-text': '#1f2937',
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',

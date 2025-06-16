@@ -7,7 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import Plans from "./pages/Plans";
+import StudyPlanDetail from "./pages/StudyPlanDetail";
 import Study from "./pages/Study";
+import StudySession from "./pages/StudySession";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -23,6 +25,13 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
+            <Route path="plans" element={<Plans />} />
+            <Route path="plan/:planId" element={<StudyPlanDetail />} />
+            <Route path="study/:topicId" element={<StudySession />} />
+            <Route path="study" element={<Study />} />
+            <Route path="analytics" element={<Analytics />} />
+            <Route path="settings" element={<Settings />} />
+            {/* Rutas legacy en español */}
             <Route path="planes" element={<Plans />} />
             <Route path="estudio" element={<Study />} />
             <Route path="analiticas" element={<Analytics />} />

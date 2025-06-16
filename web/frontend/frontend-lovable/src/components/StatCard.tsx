@@ -6,7 +6,7 @@ interface StatCardProps {
   title: string;
   value: string;
   icon: LucideIcon;
-  color: "blue" | "green" | "turquoise" | "orange";
+  color: "blue" | "green" | "turquoise" | "purple";
 }
 
 const StatCard = ({ title, value, icon: Icon, color }: StatCardProps) => {
@@ -14,14 +14,14 @@ const StatCard = ({ title, value, icon: Icon, color }: StatCardProps) => {
     blue: "text-medical-blue-600 bg-gradient-to-br from-medical-blue-50 to-medical-blue-100",
     green: "text-medical-green-600 bg-gradient-to-br from-medical-green-50 to-medical-green-100",
     turquoise: "text-medical-turquoise-600 bg-gradient-to-br from-medical-turquoise-50 to-medical-turquoise-100",
-    orange: "text-orange-600 bg-gradient-to-br from-orange-50 to-orange-100"
+    purple: "text-purple-600 bg-gradient-to-br from-purple-50 to-purple-100"
   };
 
   const shadowClasses = {
     blue: "shadow-medical-blue-100",
     green: "shadow-medical-green-100",
     turquoise: "shadow-medical-turquoise-100",
-    orange: "shadow-orange-100"
+    purple: "shadow-purple-100"
   };
 
   return (

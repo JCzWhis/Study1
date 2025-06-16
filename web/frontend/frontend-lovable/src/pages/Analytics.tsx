@@ -52,7 +52,7 @@ const Analytics = () => {
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high": return "bg-red-100 text-red-800 border-red-200";
-      case "medium": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "medium": return "bg-blue-100 text-blue-800 border-blue-200";
       case "low": return "bg-blue-100 text-blue-800 border-blue-200";
       default: return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -61,8 +61,8 @@ const Analytics = () => {
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 90) return "text-emerald-600";
     if (confidence >= 75) return "text-green-600";
-    if (confidence >= 60) return "text-yellow-600";
-    if (confidence >= 45) return "text-orange-600";
+    if (confidence >= 60) return "text-blue-600";
+    if (confidence >= 45) return "text-gray-600";
     return "text-red-600";
   };
 
@@ -110,8 +110,8 @@ const Analytics = () => {
 
         <Card className="bg-white study-shadow">
           <CardContent className="p-4 text-center">
-            <Calendar className="w-6 h-6 text-orange-600 mx-auto mb-2" />
-            <div className="text-2xl font-bold text-orange-700">
+            <Calendar className="w-6 h-6 text-medical-blue-600 mx-auto mb-2" />
+            <div className="text-2xl font-bold text-medical-blue-700">
               {monthlyStats.streak}
             </div>
             <div className="text-xs text-gray-600">Días Racha</div>
@@ -276,13 +276,13 @@ const Analytics = () => {
           <Card className="bg-white study-shadow">
             <CardHeader>
               <CardTitle className="text-lg flex items-center space-x-2">
-                <Award className="w-5 h-5 text-yellow-600" />
+                <Award className="w-5 h-5 text-medical-blue-600" />
                 <span>Logros Recientes</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex items-center space-x-3 p-2 bg-yellow-50 rounded-lg">
-                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+              <div className="flex items-center space-x-3 p-2 bg-blue-50 rounded-lg">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   🏆
                 </div>
                 <div>

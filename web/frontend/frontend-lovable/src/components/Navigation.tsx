@@ -7,10 +7,10 @@ const Navigation = () => {
   const location = useLocation();
 
   const navigationItems = [
-    { name: "📊 Tablero", href: "/" },
-    { name: "📋 Planes", href: "/planes" },
-    { name: "📖 Estudio", href: "/estudio" },
-    { name: "📈 Analíticas", href: "/analiticas" },
+    { name: "📊 Dashboard", href: "/" },
+    { name: "📋 Planes", href: "/plans" },
+    { name: "📖 Estudio", href: "/study" },
+    { name: "📈 Analíticas", href: "/analytics" },
   ];
 
   return (

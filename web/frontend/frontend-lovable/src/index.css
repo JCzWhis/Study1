@@ -7,7 +7,7 @@
 
 @layer base {
   :root {
-    --background: 254 252 249; /* #fefcf9 - Fondo cálido de estudio */
+    --background: 255 255 255; /* #ffffff - Fondo blanco limpio */
     --foreground: 31 41 55; /* #1f2937 - Texto principal */
 
     --card: 255 255 255;
@@ -119,5 +119,84 @@
     transition: stroke-dashoffset 0.35s;
     transform: rotate(90deg);
     transform-origin: 50% 50%;
+  }
+  
+  /* ELIMINAR CUALQUIER AMARILLO - FORZADO COMPLETO */
+  /* Eliminar outline y focus amarillo */
+  *:focus, *:focus-visible, *:active {
+    outline: 2px solid #1e3a8a !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1) !important;
+    border-color: #1e3a8a !important;
+  }
+  
+  /* Forzar fondos blancos/grises */
+  html, body, #root {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+  }
+  
+  .bg-study-bg {
+    background-color: #ffffff !important;
+    background: #ffffff !important;
+  }
+  
+  /* Eliminar específicamente amarillos/ambers - MANTENER VISIBILIDAD */
+  .bg-yellow-50, .bg-yellow-100, .bg-yellow-200,
+  .bg-amber-50, .bg-amber-100, .bg-amber-200,
+  [class*="bg-yellow"], [class*="bg-amber"] {
+    background-color: #1e3a8a !important;
+    background: #1e3a8a !important;
+    color: #ffffff !important;
+  }
+  
+  .border-yellow-200, .border-yellow-300, .border-yellow-400,
+  .border-amber-200, .border-amber-300, .border-amber-400,
+  [class*="border-yellow"], [class*="border-amber"] {
+    border-color: #1e3a8a !important;
+  }
+  
+  .text-yellow-600, .text-yellow-700, .text-yellow-800,
+  .text-amber-600, .text-amber-700, .text-amber-800,
+  [class*="text-yellow"], [class*="text-amber"] {
+    color: #1e3a8a !important;
+  }
+  
+  /* Asegurar que texto blanco sobre fondo blanco sea visible */
+  .text-white {
+    color: #1f2937 !important;
+  }
+  
+  /* Botones amarillos convertidos a azul médico */
+  .bg-yellow-400, .bg-yellow-500, .bg-amber-400, .bg-amber-500 {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+  }
+  
+  /* Forzar diálogos y cards */
+  [role="dialog"], .dialog, .modal {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+  }
+  
+  .card, [data-ui="card"] {
+    background-color: #ffffff !important;
+    border-color: #e5e7eb !important;
+  }
+  
+  /* Eliminar highlights de Tailwind/navegador */
+  button:focus, input:focus, textarea:focus, select:focus,
+  [role="button"]:focus, [tabindex]:focus {
+    outline: 2px solid #1e3a8a !important;
+    outline-offset: 2px !important;
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.1) !important;
+    border-color: #1e3a8a !important;
+  }
+  
+  /* FORZAR ELEMENTOS AMARILLOS ESPECÍFICOS A SER VISIBLES */
+  .btn-primary, .bg-primary, .button-primary {
+    background-color: #1e3a8a !important;
+    color: #ffffff !important;
+    border-color: #1e3a8a !important;
   }
 }

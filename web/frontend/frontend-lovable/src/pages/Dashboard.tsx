@@ -62,20 +62,20 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-medical-blue-800 to-medical-blue-600 rounded-xl p-8 text-white mb-8">
-        <h2 className="text-3xl font-bold mb-2">{getGreeting()}</h2>
+      <div className="bg-gradient-to-r from-blue-800 to-blue-600 rounded-xl p-8 text-white mb-8">
+        <h2 className="text-3xl font-bold mb-2 text-white">{getGreeting()}</h2>
         <p className="text-blue-100 mb-6">Continúa tu aprendizaje médico basado en evidencia</p>
         <div className="flex space-x-4">
           <Button 
             onClick={() => navigate('/estudio')}
-            className="bg-white text-medical-blue-800 px-6 py-3 hover:bg-blue-50 font-semibold"
+            className="bg-white text-blue-800 px-6 py-3 hover:bg-blue-50 font-semibold"
           >
             🚀 Iniciar Estudio
           </Button>
           <Button 
-            onClick={() => navigate('/planes')}
+            onClick={() => navigate('/plans')}
             variant="outline"
-            className="border-white text-white px-6 py-3 hover:bg-white hover:text-medical-blue-800"
+            className="border-white text-white px-6 py-3 hover:bg-white hover:text-blue-800"
           >
             📋 Crear Plan
           </Button>
@@ -106,7 +106,7 @@ const Dashboard = () => {
           title="Streak Actual"
           value={isLoading ? "..." : `${analytics.currentStreak} días`}
           icon={Flame}
-          color="orange"
+          color="purple"
         />
       </div>
 
