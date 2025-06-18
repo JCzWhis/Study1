@@ -1,51 +1,44 @@
-# 🧠 MedStudy Pro
+# 🏥 MedStudy Pro - Sistema de Estudio Médico con IA
 
-> **Sistema de Estudio Médico Basado en Neurociencia Cognitiva con IA Local**
+## 🎯 **Descripción**
 
-Aplicación web moderna que implementa las mejores prácticas de aprendizaje (Active Recall, Repetición Espaciada, Interleaving) para crear un asistente de estudio médico personalizado usando IA 100% local.
+MedStudy Pro es un sistema avanzado de educación médica que utiliza inteligencia artificial (Django + LangChain + Ollama) para crear planes de estudio personalizados, generar evaluaciones adaptativas y proporcionar análisis de progreso con repetición espaciada.
 
+![Django](https://img.shields.io/badge/Django-4.2+-092E20.svg)
+![LangChain](https://img.shields.io/badge/LangChain-0.1+-green.svg)
+![Ollama](https://img.shields.io/badge/Ollama-Gemma2-blue.svg)
 ![React](https://img.shields.io/badge/React-18+-61DAFB.svg)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-009688.svg)
-![Ollama](https://img.shields.io/badge/Ollama-gemma2%3A2b-green.svg)
-![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## 🚀 Instalación
+## 🚀 **Inicio Rápido**
 
-### **💻 Para Usuarios Finales (Médicos/Estudiantes)**
+### **Instalación en 1 Comando**
 ```bash
-# 1. Descargar instalador desde Releases
-MedStudy-Setup-v1.0.exe         # Windows
-MedStudy-v1.0.dmg               # macOS  
-MedStudy-v1.0.AppImage          # Linux
-
-# 2. Ejecutar instalador - incluye todo:
-# ✅ Python + FastAPI backend
-# ✅ React frontend compilado  
-# ✅ Ollama + modelo Gemma 3-2B
-# ✅ ChromaDB + base de datos
-
-# 3. Doble clic en icono del escritorio
-# 🚀 Se abre automáticamente en tu navegador
+cd quickstart
+./START_MEDSTUDY.bat  # Windows
+./start_medstudy.sh   # Linux/Mac
 ```
+
+### **Acceso a Interfaces**
+- **Django Admin:** http://localhost:8000/admin/
+- **API REST:** http://localhost:8000/api/v1/
+- **Frontend:** http://localhost:3000/
+- **Health Check:** http://localhost:8000/health/
 
 ### **🔧 Para Desarrolladores**
 ```bash
-# 1. Clona el repositorio
-git clone https://github.com/tu-usuario/Study1.git
-cd Study1
+# 1. Sistema Django
+cd medstudy_app
+python setup_django_medstudy.py
+source venv_django/bin/activate  # Linux/Mac
+venv_django\Scripts\activate     # Windows
+python manage.py runserver 8000
 
-# 2. Desarrollo backend
-cd web/backend
-python -m venv venv && venv\Scripts\activate
-pip install -r requirements.txt
-python -m uvicorn app.main:app --reload --port 8000
-
-# 3. Desarrollo frontend  
-cd web/frontend
+# 2. Frontend React
+cd frontend
 npm install && npm start
 
-# 4. Ollama (IA local)
+# 3. Ollama (IA local)
 ollama serve
 ollama pull gemma2:2b
 ```

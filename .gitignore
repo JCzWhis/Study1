@@ -1,10 +1,16 @@
-# Sensitive Configuration Files
+# 🔒 ARCHIVOS SENSIBLES - SEGURIDAD CRÍTICA
 # Protect API keys, database credentials, and other secrets
 config.ini
+config_local.ini
 .env
+.env.local
+.env.production
 *.env
 secrets.yaml
+secrets.json
 credentials.json
+auth_config.py
+api_keys.txt
 
 # Local Databases
 # Prevent committing local database instances
@@ -34,10 +40,18 @@ user_data/
 medical_records/
 uploaded_documents/
 patient_files/
-*.pdf
-*.docx
-*.txt
+private_medical_content/
 # Add specific file types if documents are stored outside dedicated directories
+
+# 🗂️ Archivos de entornos virtuales Django
+medstudy_app/venv/
+**/venv_django/
+**/venv/
+
+# 🤖 IA Models y Cache
+models/
+**/chroma_db/
+**/embeddings/
 
 # Python specific
 # Exclude Python cache files, virtual environments, and build artifacts
